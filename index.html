@@ -2,24 +2,38 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>簡単見積（日産福岡）</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>【日産福岡販売様】簡易見積ツール</title>
 <style>
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:760px;margin:24px auto;padding:0 12px}
-.header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
-.badge{padding:6px 10px;border-radius:999px;background:#f3f4f6;border:1px solid #e5e7eb;font-size:12px}
-.card{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-.row>*{flex:1}
-label{font-weight:600;font-size:14px}
-input,select,button{padding:10px;border:1px solid #ccc;border-radius:8px;width:100%}
-button{cursor:pointer}
-.total{font-size:18px;font-weight:700}
-.err{color:#b00020}
-.small{font-size:12px;color:#6b7280}
-.toggle{display:flex;align-items:center;gap:8px}
+:root{--pad:14px;--gap:12px;--radius:14px;--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#ffffff}
+html,body{background:#fafafa;color:var(--fg)}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;padding:env(safe-area-inset-top) var(--pad) env(safe-area-inset-bottom)}
+.header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 8px}
+.badge{padding:6px 10px;border-radius:999px;background:#f3f4f6;border:1px solid #e5e7eb;font-size:12px;white-space:nowrap}
+.card{border:1px solid var(--bd);border-radius:var(--radius);padding:var(--pad);margin:12px 0;background:var(--bg);box-shadow:0 1px 0 rgba(0,0,0,.02)}
+.stack{display:flex;flex-direction:column;gap:var(--gap)}
+label{font-weight:600;font-size:14px;display:block;margin-bottom:6px}
+input,select,button{padding:12px;border:1px solid #d1d5db;border-radius:10px;width:100%;font-size:16px;background:#fff}
+select{appearance:none;background-image:
+ linear-gradient(45deg, transparent 50%, #9ca3af 50%),
+ linear-gradient(135deg, #9ca3af 50%, transparent 50%),
+ linear-gradient(to right, #d1d5db, #d1d5db);
+background-position:calc(100% - 18px) calc(1em - 2px), calc(100% - 13px) calc(1em - 2px), calc(100% - 2.5rem) 50%;
+background-size:5px 5px,5px 5px,1px 1.8em;background-repeat:no-repeat}
+button{cursor:pointer;background:#111827;color:#fff;border:1px solid #111827;font-weight:700}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:#fff;color:#111827;border:1px solid #d1d5db}
+.small{font-size:12px;color:var(--muted)}
+.err{color:#b00020;margin-top:6px}
 .kv{font-size:13px;color:#374151}
 .kv b{display:inline-block;min-width:3.5rem}
+.line{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed #e5e7eb}
+.line:last-child{border-bottom:none}
+.total{font-size:20px;font-weight:800;margin-top:8px}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+@media (max-width:480px){.row-2{grid-template-columns:1fr}}
+.note{font-size:12px;color:#374151;margin-top:8px}
+.iteminfo{font-size:12px;color:#374151;margin-top:6px;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -29,169 +43,333 @@ button{cursor:pointer}
   </div>
   <div class="kv" id="branchContact" style="margin:4px 0 12px 0;"></div>
 
+  <!-- 入力（スマホ縦・1カラム） -->
   <div class="card">
-    <div class="row">
-      <div><label>担当者</label><input id="salesperson" placeholder="担当者名を入力"></div>
+    <div class="stack">
+      <div>
+        <label>ご担当者様</label>
+        <input id="salesperson" placeholder="入力してください">
+      </div>
+
       <div>
         <label>車種コード（model_code）</label>
         <select id="vehicleSelect"></select>
-        <div class="toggle" style="margin-top:6px">
-          <input type="checkbox" id="manualToggle">
-          <label for="manualToggle" style="margin:0;font-weight:500">リストにない場合は手入力</label>
+        <div class="small" id="vehicleHelp">選択/入力すると自動で適合情報を読み込みます。</div>
+        <div class="stack" style="margin-top:6px">
+          <button class="btn-ghost" id="manualToggleBtn" aria-pressed="false">リストにない場合は手入力に切替</button>
+          <input id="vehicleManual" placeholder="例: E13 / C28 / FE0" style="display:none">
         </div>
-        <input id="vehicleManual" placeholder="例: E13 / C28 / FE0" style="display:none;margin-top:6px">
       </div>
-      <div style="align-self:end"><button id="btnAvail">選択肢を読み込む</button></div>
-    </div>
-    <div class="small">※ 店舗はQRのコードから自動取得し、SharePointの正式名称/TEL/FAXを表示します。</div>
-  </div>
 
-  <div class="card">
-    <div class="row">
-      <div><label>NAV</label>
-        <select id="navTier"><option value="">選択なし</option></select>
+      <!-- メインカテゴリ -->
+      <div class="row-2">
+        <div>
+          <label>ナビゲーション</label>
+          <select id="navTier"><option value="">選択なし</option></select>
+          <div id="navInfo" class="iteminfo"></div>
+        </div>
+        <div>
+          <label>ETC</label>
+          <select id="etcTier"><option value="">選択なし</option></select>
+          <div id="etcInfo" class="iteminfo"></div>
+        </div>
       </div>
-      <div><label>ETC</label>
-        <select id="etcTier"><option value="">選択なし</option></select>
+
+      <div class="row-2">
+        <div>
+          <label>ドライブレコーダー</label>
+          <select id="drcTier"><option value="">選択なし</option></select>
+          <div id="drcInfo" class="iteminfo"></div>
+        </div>
+        <div>
+          <label>バックカメラ</label>
+          <select id="bcmTier"><option value="">選択なし</option></select>
+          <div id="bcmInfo" class="iteminfo"></div>
+        </div>
       </div>
-      <div><label>ドラレコ</label>
-        <select id="drcTier"><option value="">選択なし</option></select>
-      </div>
-    </div>
-    <div class="row">
-      <div><label>バックカメラ</label>
-        <select id="bcmTier"><option value="">選択なし</option></select>
-      </div>
-      <div><label>後席モニター</label>
+
+      <div>
+        <label>後席モニター</label>
         <select id="rseTier"><option value="">選択なし</option></select>
+        <div id="rseInfo" class="iteminfo"></div>
+      </div>
+
+      <!-- オプション：チェック → プルダウンへ変更 -->
+      <div class="row-2">
+        <div>
+          <label>携帯充電用USBコード</label>
+          <select id="optUSB"><option value="">選択なし</option></select>
+          <div id="optUSBInfo" class="iteminfo"></div>
+        </div>
+        <div>
+          <label>HDMI入力コード</label>
+          <select id="optHDMI"><option value="">選択なし</option></select>
+          <div id="optHDMIInfo" class="iteminfo"></div>
+        </div>
+      </div>
+      <div>
+        <label>ottocast</label>
+        <select id="optOTTO"><option value="">選択なし</option></select>
+        <div id="optOTTOInfo" class="iteminfo"></div>
+      </div>
+
+      <div class="stack">
+        <button id="btnQuote">見積を表示</button>
+        <div id="msg" class="err"></div>
+        <div class="small">※ 店舗は自動取得します。</div>
       </div>
     </div>
-    <div class="row">
-      <div><label><input type="checkbox" id="optUSB"> OPT_USB</label></div>
-      <div><label><input type="checkbox" id="optHDMI"> OPT_HDMI</label></div>
-      <div><label><input type="checkbox" id="optOTTO"> OPT_OTTOCAST</label></div>
-    </div>
-    <div class="row">
-      <div style="align-self:end"><button id="btnQuote">見積を表示</button></div>
-    </div>
-    <div id="msg" class="err"></div>
   </div>
 
+  <!-- 結果 -->
   <div class="card" id="result" style="display:none">
     <div id="lines"></div>
     <div class="total" id="grand"></div>
-    <div id="notes"></div>
+    <div id="notes" class="note"></div>
   </div>
 
 <script>
+/* ===== 設定 ===== */
 const FLOW_URL = "https://default65d7f344287e476a8e27e2ad17aaf5.f3.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/cc92c47cc1374afcb742cad801a2de4d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qFlUmKJ42rtDOVD9jRbRy1NkE3AQTQmQMgX15viXKuA";
 const API_KEY  = "aP5y72Kn";
-const DEALER_CODE = "NISSAN_FUKUOKA"; // 固定
-
-// ここに車種の候補を追加できます
-const VEHICLE_MODELS = [
-  { code:"E13", label:"NOTE (E13)" },
-  { code:"C28", label:"SERENA (C28)" },
-  { code:"FE0", label:"ARIYA (FE0)" },
-  { code:"T33", label:"X-TRAIL (T33)" }
-];
-
+const DEALER_CODE = "NISSAN_FUKUOKA";
 const params = new URLSearchParams(location.search);
 const BRANCH_CODE = (params.get('branch')||'').trim();
 
-function qs(id){return document.getElementById(id)}
-function setSelect(el, tiers, disabled, reason){
-  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIUM:"プレミアム"}
-  el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`
-  if(!disabled){
-    (tiers||[]).forEach(t=> el.insertAdjacentHTML('beforeend', `<option value="${t}">${labels[t]||t}</option>`))
-  }
-  el.disabled = !!disabled
-}
+/* ===== 汎用 ===== */
+const qs = id => document.getElementById(id);
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+let debounceTimer=null;
+function debounce(fn, ms=400){ return (...a)=>{ clearTimeout(debounceTimer); debounceTimer=setTimeout(()=>fn(...a), ms); }; }
 async function callFlow(body){
-  const res = await fetch(FLOW_URL, { method:"POST", headers:{"Content-Type":"application/json","x-api-key":API_KEY}, body: JSON.stringify(body) })
-  if(!res.ok) throw new Error(await res.text());
-  return res.json()
+  const res = await fetch(FLOW_URL, {
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":API_KEY},
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){ throw new Error(await res.text()); }
+  return res.json();
+}
+function setSelect(el, tiers, disabled, reason){
+  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIUM:"プレミアム"};
+  el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
+  if(!disabled){ (tiers||[]).forEach(t=> el.insertAdjacentHTML('beforeend', `<option value="${t}">${labels[t]||t}</option>`)); }
+  el.disabled = !!disabled;
 }
 
-// 起動時：店舗情報を取得（intent: branchInfo）
+/* ===== 起動時：店舗情報 ===== */
 (async ()=>{
   const badge = qs('branchBadge'); const contact = qs('branchContact');
   if(!BRANCH_CODE){ badge.textContent = "店舗：未指定"; return; }
   try{
     const info = await callFlow({ intent:"branchInfo", dealer: DEALER_CODE, branch: BRANCH_CODE, vehicle:"" });
-    const b = info.branch || {}
-    const label = (info.found && b.name) ? b.name : BRANCH_CODE;
-    badge.textContent = "店舗：" + label;
-    if(b.tel || b.fax){
-      contact.textContent = `TEL: ${b.tel||'-'} / FAX: ${b.fax||'-'}`;
-    }
-  }catch(e){
-    badge.textContent = "店舗：不明（コード不一致）";
-  }
+    const b = info.branch || {};
+    badge.textContent = "店舗：" + ((info.found && b.name)? b.name : BRANCH_CODE);
+    if(b.tel || b.fax){ contact.textContent = `TEL: ${b.tel||'-'} / FAX: ${b.fax||'-'}`; }
+  }catch{ badge.textContent = "店舗：不明（コード不一致）"; }
 })();
 
-// 車種セレクトの初期化
-(function initVehicleSelect(){
+/* ===== 車種セレクト（04_VehicleDifficulty: field_2=code / field_1=label） ===== */
+async function initVehicleSelectFromSharePoint(){
   const sel = qs('vehicleSelect');
-  sel.innerHTML = '<option value="">車種を選択</option>' + VEHICLE_MODELS.map(m=>`<option value="${m.code}">${m.label}</option>`).join('');
-})();
+  sel.disabled = true;
+  sel.innerHTML = '<option value="">車種を読み込み中…</option>';
+  try{
+    const res = await callFlow({ intent: "listVehicles" });
+    const items = Array.isArray(res.items) ? res.items : [];
+    if(items.length === 0){ sel.innerHTML = '<option value="">登録が見つかりません</option>'; sel.disabled = false; return; }
+    const list = items
+      .filter(x => (x.code||'').trim() !== '')
+      .map(x => ({ code: (x.code||'').trim().toUpperCase(), label: (x.label||'').trim() }))
+      .sort((a,b)=> a.label.localeCompare(b.label,'ja'));
+    sel.innerHTML = '<option value="">車種を選択</option>';
+    for(const it of list){ sel.insertAdjacentHTML('beforeend', `<option value="${it.code}">${it.label?`${it.label} (${it.code})`:it.code}</option>`); }
+  }catch(e){
+    sel.innerHTML = '<option value="">読み込みに失敗しました（手入力に切替可）</option>';
+    qs('msg').textContent = '車種リストの取得に失敗：' + e.message;
+  }finally{ sel.disabled = false; }
+}
+initVehicleSelectFromSharePoint();
 
-// 手入力トグル
-qs('manualToggle').addEventListener('change', (e)=>{
+/* ===== 手入力モード切替 ===== */
+qs('manualToggleBtn').addEventListener('click', (e)=>{
+  const btn = e.currentTarget, pressed = btn.getAttribute('aria-pressed')==='true';
   const manual = qs('vehicleManual'); const sel = qs('vehicleSelect');
-  if(e.target.checked){ manual.style.display=''; sel.disabled=true; }
-  else{ manual.style.display='none'; sel.disabled=false; }
+  if(pressed){ btn.setAttribute('aria-pressed','false'); btn.textContent='リストにない場合は手入力に切替'; manual.style.display='none'; manual.value=''; sel.disabled=false; }
+  else{ btn.setAttribute('aria-pressed','true'); btn.textContent='手入力をやめてリストに戻す'; manual.style.display=''; sel.disabled=true; manual.focus(); }
+  triggerAvailability();
 });
+function getVehicleCode(){ return (qs('manualToggleBtn').getAttribute('aria-pressed')==='true' ? (qs('vehicleManual').value||'') : (qs('vehicleSelect').value||'')).trim().toUpperCase(); }
 
-function getVehicleCode(){
-  const manualOn = qs('manualToggle').checked;
-  if(manualOn) return (qs('vehicleManual').value||'').trim().toUpperCase();
-  return (qs('vehicleSelect').value||'').trim().toUpperCase();
-}
-
-qs('btnAvail').onclick = async ()=>{
-  qs('msg').textContent = ''
+/* ===== 可用性の自動読み込み ===== */
+async function loadAvailability(){
+  qs('msg').textContent = '';
+  const vehicle = getVehicleCode();
+  if(!BRANCH_CODE || !vehicle){ return; }
   try{
-    if(!BRANCH_CODE) throw new Error("店舗情報（branch）がQRに含まれていません。正しいQRからアクセスしてください。");
-    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
-    const payload = { dealer: DEALER_CODE, branch: BRANCH_CODE, vehicle, intent: "availability" }
-    const data = await callFlow(payload)
-    const av = data.availability || {}
+    const payload = { dealer: DEALER_CODE, branch: BRANCH_CODE, vehicle, intent: "availability" };
+    const data = await callFlow(payload);
+    const av = data.availability || {};
+    setSelect(qs('navTier'), (av.NAV?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.NAV?.allowed===false, av.NAV?.reason);
+    setSelect(qs('etcTier'), (av.ETC?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.ETC?.allowed===false, av.ETC?.reason);
+    setSelect(qs('drcTier'), (av.DRC?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.DRC?.allowed===false, av.DRC?.reason);
+    setSelect(qs('bcmTier'), (av.BACKCAM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BACKCAM?.allowed===false, av.BACKCAM?.reason);
+    setSelect(qs('rseTier'), (av.RSE?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.RSE?.allowed===false, av.RSE?.reason);
 
-    setSelect(qs('navTier'), (av.NAV?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.NAV?.allowed===false, av.NAV?.reason)
-    setSelect(qs('etcTier'), ["SIMPLE","BASIC","PREMIUM"], av.ETC?.allowed===false, av.ETC?.reason)
-    setSelect(qs('drcTier'), ["SIMPLE","BASIC","PREMIUM"], av.DRC?.allowed===false, av.DRC?.reason)
-    setSelect(qs('bcmTier'), (av.BACKCAM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BACKCAM?.allowed===false, av.BACKCAM?.reason)
-    setSelect(qs('rseTier'), ["SIMPLE","BASIC","PREMIUM"], av.RSE?.allowed===false, av.RSE?.reason)
-  }catch(e){ qs('msg').textContent = e.message }
+    // オプション一覧を SharePoint から（02_Catalog_Main, Title=OPT_*）
+    await initOptionSelect('OPT_USB','optUSB');
+    await initOptionSelect('OPT_HDMI','optHDMI');
+    await initOptionSelect('OPT_OTTOCAST','optOTTO');
+
+  }catch(e){
+    qs('msg').textContent = '可用性の取得に失敗しました: ' + e.message;
+  }
+}
+const triggerAvailability = debounce(loadAvailability, 350);
+qs('vehicleSelect').addEventListener('change', triggerAvailability);
+qs('vehicleManual').addEventListener('input', triggerAvailability);
+
+/* ===== 02_Catalog_Main：商品名(field_3)/詳細(field_4) 取得＆表示 ===== */
+async function fetchCatalogItem(category, { grade=null, code=null }){
+  // Power Automate 側：intent=getCatalogItem に合わせて実装してください
+  // 期待レスポンス例：{ name:"carrozzeria 楽ナビ（ベーシック 7型）", detail:"型式：AVIC-...", code:"NAV_B_7IN" }
+  const vehicle = getVehicleCode();
+  const payload = { intent:"getCatalogItem", dealer: DEALER_CODE, branch: BRANCH_CODE, vehicle, category, grade, code };
+  try{ return await callFlow(payload); } catch(e){ return {}; }
+}
+function renderItemInfo(elId, info){
+  const el = qs(elId);
+  if(!info || (!info.name && !info.detail)){ el.textContent = ""; return; }
+  const name = info.name || "";
+  const detail = info.detail || "";
+  el.textContent = `商品名：${name}\n${detail ? `詳細：${detail}` : ''}`;
 }
 
+/* メインカテゴリ：選択（grade） → 商品名/詳細を表示 */
+async function onMainSelect(category, selectId, infoId){
+  const grade = (qs(selectId).value||'').trim();
+  if(!grade){ renderItemInfo(infoId, null); return; }
+  const info = await fetchCatalogItem(category, { grade });
+  renderItemInfo(infoId, info);
+  selectedCatalogInfo[category] = { category, grade, ...info }; // 見積に反映するため保持
+}
+
+/* オプション：Title=OPT_* の一覧 → セレクト生成（値は code） */
+async function initOptionSelect(optCategory, selectId){
+  const sel = qs(selectId);
+  sel.disabled = true;
+  sel.innerHTML = '<option value="">読み込み中…</option>';
+  try{
+    // Power Automate 側：intent=listOptions で 02_Catalog_Main を Title=optCategory で検索して返す
+    // 期待レスポンス例：{ items:[{code:"USB-C-1m", name:"USB-Cケーブル 1m", detail:"急速充電対応"}, ...] }
+    const res = await callFlow({ intent:"listOptions", category: optCategory });
+    const items = Array.isArray(res.items) ? res.items : [];
+    if(items.length === 0){ sel.innerHTML = '<option value="">選択なし</option>'; sel.disabled=false; return; }
+    sel.innerHTML = '<option value="">選択なし</option>';
+    for(const it of items){
+      const code = (it.code||'').trim();
+      const name = (it.name||'').trim();
+      sel.insertAdjacentHTML('beforeend', `<option value="${code}">${name||code}</option>`);
+    }
+    sel.disabled = false;
+  }catch(e){
+    sel.innerHTML = '<option value="">読み込み失敗</option>';
+  }
+}
+
+/* オプション選択時：code → 商品名/詳細の取得＆表示 */
+async function onOptionSelect(category, selectId, infoId){
+  const code = (qs(selectId).value||'').trim();
+  if(!code){ renderItemInfo(infoId, null); selectedCatalogInfo[category]=null; return; }
+  const info = await fetchCatalogItem(category, { code });
+  renderItemInfo(infoId, info);
+  selectedCatalogInfo[category] = { category, code, ...info }; // 見積に反映するため保持
+}
+
+/* 選択されたカタログ情報を保持（見積POSTに同梱） */
+const selectedCatalogInfo = {
+  NAV:null, ETC:null, DRC:null, BACKCAM:null, RSE:null,
+  OPT_USB:null, OPT_HDMI:null, OPT_OTTOCAST:null
+};
+
+/* ===== イベント紐付け：メインカテゴリとオプション ===== */
+qs('navTier').addEventListener('change', ()=> onMainSelect('NAV','navTier','navInfo'));
+qs('etcTier').addEventListener('change', ()=> onMainSelect('ETC','etcTier','etcInfo'));
+qs('drcTier').addEventListener('change', ()=> onMainSelect('DRC','drcTier','drcInfo'));
+qs('bcmTier').addEventListener('change', ()=> onMainSelect('BACKCAM','bcmTier','bcmInfo'));
+qs('rseTier').addEventListener('change', ()=> onMainSelect('RSE','rseTier','rseInfo'));
+
+qs('optUSB').addEventListener('change', ()=> onOptionSelect('OPT_USB','optUSB','optUSBInfo'));
+qs('optHDMI').addEventListener('change', ()=> onOptionSelect('OPT_HDMI','optHDMI','optHDMIInfo'));
+qs('optOTTO').addEventListener('change', ()=> onOptionSelect('OPT_OTTOCAST','optOTTO','optOTTOInfo'));
+
+/* ===== 見積（POST → 結果表示） ===== */
 qs('btnQuote').onclick = async ()=>{
-  qs('msg').textContent = ''
+  qs('msg').textContent = '';
   try{
     if(!BRANCH_CODE) throw new Error("店舗情報（branch）がQRに含まれていません。正しいQRからアクセスしてください。");
     const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
+
+    const selTo10 = v => v && v.length ? "1" : "0";
+
+    // 選択フラグ/グレード（メイン）
     const payload = {
-      dealer: DEALER_CODE, branch: BRANCH_CODE, salesperson: qs('salesperson').value.trim(), vehicle,
-      selections: { NAV: qs('navTier').value || null, ETC: qs('etcTier').value || null, DRC: qs('drcTier').value || null, BACKCAM: qs('bcmTier').value || null, RSE: qs('rseTier').value || null },
-      options: [
-        ...(qs('optUSB').checked?  ['OPT_USB']:[]),
-        ...(qs('optHDMI').checked? ['OPT_HDMI']:[]),
-        ...(qs('optOTTO').checked? ['OPT_OTTOCAST']:[])
-      ]
-    }
-    const data = await callFlow(payload)
+      intent: "quote",
+      dealer: DEALER_CODE,
+      branch: BRANCH_CODE,
+      salesperson: qs('salesperson').value.trim(),
+      vehicle,
+
+      nav_selected: selTo10(qs('navTier').value),
+      etc_selected: selTo10(qs('etcTier').value),
+      drc_selected: selTo10(qs('drcTier').value),
+      bcm_selected: selTo10(qs('bcmTier').value),
+      rse_selected: selTo10(qs('rseTier').value),
+
+      nav_grade: qs('navTier').value || null,
+      etc_grade: qs('etcTier').value || null,
+      drc_grade: qs('drcTier').value || null,
+      bcm_grade: qs('bcmTier').value || null,
+      rse_grade: qs('rseTier').value || null,
+
+      // オプションは code で送る
+      opt_usb_code: (qs('optUSB').value||null),
+      opt_hdmi_code: (qs('optHDMI').value||null),
+      opt_otto_code: (qs('optOTTO').value||null),
+
+      // ★ 見積側で明細に使えるよう、商品名/詳細も同梱
+      selectedItems: Object.values(selectedCatalogInfo).filter(Boolean)
+      // 例: [{category:"NAV", grade:"BASIC", name:"...", detail:"...", code:"..."}, ...]
+    };
+
+    const data = await callFlow(payload);
+
     if(data.validation?.errors?.length){
-      qs('msg').textContent = data.validation.errors.join(' / '); qs('result').style.display='none'; return
+      qs('result').style.display='none';
+      qs('msg').textContent = data.validation.errors.join(' / ');
+      return;
     }
-    const linesEl = qs('lines'); linesEl.innerHTML = ''
-    ;(data.display?.lines||[]).forEach(l=>{ linesEl.insertAdjacentHTML('beforeend', `<div class="row"><div>${l.name}</div><div style='text-align:right'>¥${Number(l.price).toLocaleString()}</div></div>`) })
-    qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString()
-    qs('notes').textContent = (data.display?.notes||[]).join(' / ')
-    qs('result').style.display = 'block'
-  }catch(e){ qs('msg').textContent = e.message }
-}
+
+    // ライン表示（フローの応答に name/detail が入ってくるなら併記）
+    const linesEl = qs('lines'); linesEl.innerHTML = '';
+    (data.display?.lines||[]).forEach(l=>{
+      const name = l.name || '';
+      const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
+      linesEl.insertAdjacentHTML('beforeend',
+        `<div class="line"><div>${name}${detail}</div><div>¥${Number(l.price||0).toLocaleString()}</div></div>`
+      );
+    });
+
+    qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString();
+    qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
+
+    qs('result').style.display = 'block';
+    await sleep(50);
+    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    qs('msg').textContent = e.message;
+  }
+};
 </script>
 </body>
 </html>
