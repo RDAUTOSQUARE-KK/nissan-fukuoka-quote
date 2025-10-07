@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>簡単見積（日産福岡）</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:760px;margin:24px auto;padding:0 12px}
+.header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.badge{padding:6px 10px;border-radius:999px;background:#f3f4f6;border:1px solid #e5e7eb;font-size:12px}
+.card{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1}
+label{font-weight:600;font-size:14px}
+input,select,button{padding:10px;border:1px solid #ccc;border-radius:8px;width:100%}
+button{cursor:pointer}
+.total{font-size:18px;font-weight:700}
+.err{color:#b00020}
+.small{font-size:12px;color:#6b7280}
+.toggle{display:flex;align-items:center;gap:8px}
+.kv{font-size:13px;color:#374151}
+.kv b{display:inline-block;min-width:3.5rem}
+</style>
+</head>
+<body>
+  <div class="header">
+    <span class="badge">ディーラー：日産福岡</span>
+    <span class="badge" id="branchBadge">店舗：読込中...</span>
+  </div>
+  <div class="kv" id="branchContact" style="margin:4px 0 12px 0;"></div>
+
+  <div class="card">
+    <div class="row">
+      <div><label>担当者</label><input id="salesperson" placeholder="担当者名を入力"></div>
+      <div>
+        <label>車種コード（model_code）</label>
+        <select id="vehicleSelect"></select>
+        <div class="toggle" style="margin-top:6px">
+          <input type="checkbox" id="manualToggle">
+          <label for="manualToggle" style="margin:0;font-weight:500">リストにない場合は手入力</label>
+        </div>
+        <input id="vehicleManual" placeholder="例: E13 / C28 / FE0" style="display:none;margin-top:6px">
+      </div>
+      <div style="align-self:end"><button id="btnAvail">選択肢を読み込む</button></div>
+    </div>
+    <div class="small">※ 店舗はQRのコードから自動取得し、SharePointの正式名称/TEL/FAXを表示します。</div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div><label>NAV</label>
+        <select id="navTier"><option value="">選択なし</option></select>
+      </div>
+      <div><label>ETC</label>
+        <select id="etcTier"><option value="">選択なし</option></select>
+      </div>
+      <div><label>ドラレコ</label>
+        <select id="drcTier"><option value="">選択なし</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>バックカメラ</label>
+        <select id="bcmTier"><option value="">選択なし</option></select>
+      </div>
+      <div><label>後席モニター</label>
+        <select id="rseTier"><option value="">選択なし</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label><input type="checkbox" id="optUSB"> OPT_USB</label></div>
+      <div><label><input type="checkbox" id="optHDMI"> OPT_HDMI</label></div>
+      <div><label><input type="checkbox" id="optOTTO"> OPT_OTTOCAST</label></div>
+    </div>
+    <div class="row">
+      <div style="align-self:end"><button id="btnQuote">見積を表示</button></div>
+    </div>
+    <div id="msg" class="err"></div>
+  </div>
+
+  <div class="card" id="result" style="display:none">
+    <div id="lines"></div>
+    <div class="total" id="grand"></div>
+    <div id="notes"></div>
+  </div>
+
+<script>
+const FLOW_URL = "https://default65d7f344287e476a8e27e2ad17aaf5.f3.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/cc92c47cc1374afcb742cad801a2de4d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qFlUmKJ42rtDOVD9jRbRy1NkE3AQTQmQMgX15viXKuA";
+const API_KEY  = "aP5y72Kn";
+const DEALER_CODE = "NISSAN_FUKUOKA"; // 固定
+
+// ここに車種の候補を追加できます
+const VEHICLE_MODELS = [
+  { code:"E13", label:"NOTE (E13)" },
+  { code:"C28", label:"SERENA (C28)" },
+  { code:"FE0", label:"ARIYA (FE0)" },
+  { code:"T33", label:"X-TRAIL (T33)" }
+];
+
+const params = new URLSearchParams(location.search);
+const BRANCH_CODE = (params.get('branch')||'').trim();
+
+function qs(id){return document.getElementById(id)}
+function setSelect(el, tiers, disabled, reason){
+  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIUM:"プレミアム"}
+  el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`
+  if(!disabled){
+    (tiers||[]).forEach(t=> el.insertAdjacentHTML('beforeend', `<option value="${t}">${labels[t]||t}</option>`))
+  }
+  el.disabled = !!disabled
+}
+async function callFlow(body){
+  const res = await fetch(FLOW_URL, { method:"POST", headers:{"Content-Type":"application/json","x-api-key":API_KEY}, body: JSON.stringify(body) })
+  if(!res.ok) throw new Error(await res.text());
+  return res.json()
+}
+
+// 起動時：店舗情報を取得（intent: branchInfo）
+(async ()=>{
+  const badge = qs('branchBadge'); const contact = qs('branchContact');
+  if(!BRANCH_CODE){ badge.textContent = "店舗：未指定"; return; }
+  try{
+    const info = await callFlow({ intent:"branchInfo", dealer: DEALER_CODE, branch: BRANCH_CODE, vehicle:"" });
+    const b = info.branch || {}
+    const label = (info.found && b.name) ? b.name : BRANCH_CODE;
+    badge.textContent = "店舗：" + label;
+    if(b.tel || b.fax){
+      contact.textContent = `TEL: ${b.tel||'-'} / FAX: ${b.fax||'-'}`;
+    }
+  }catch(e){
+    badge.textContent = "店舗：不明（コード不一致）";
+  }
+})();
+
+// 車種セレクトの初期化
+(function initVehicleSelect(){
+  const sel = qs('vehicleSelect');
+  sel.innerHTML = '<option value="">車種を選択</option>' + VEHICLE_MODELS.map(m=>`<option value="${m.code}">${m.label}</option>`).join('');
+})();
+
+// 手入力トグル
+qs('manualToggle').addEventListener('change', (e)=>{
+  const manual = qs('vehicleManual'); const sel = qs('vehicleSelect');
+  if(e.target.checked){ manual.style.display=''; sel.disabled=true; }
+  else{ manual.style.display='none'; sel.disabled=false; }
+});
+
+function getVehicleCode(){
+  const manualOn = qs('manualToggle').checked;
+  if(manualOn) return (qs('vehicleManual').value||'').trim().toUpperCase();
+  return (qs('vehicleSelect').value||'').trim().toUpperCase();
+}
+
+qs('btnAvail').onclick = async ()=>{
+  qs('msg').textContent = ''
+  try{
+    if(!BRANCH_CODE) throw new Error("店舗情報（branch）がQRに含まれていません。正しいQRからアクセスしてください。");
+    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
+    const payload = { dealer: DEALER_CODE, branch: BRANCH_CODE, vehicle, intent: "availability" }
+    const data = await callFlow(payload)
+    const av = data.availability || {}
+
+    setSelect(qs('navTier'), (av.NAV?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.NAV?.allowed===false, av.NAV?.reason)
+    setSelect(qs('etcTier'), ["SIMPLE","BASIC","PREMIUM"], av.ETC?.allowed===false, av.ETC?.reason)
+    setSelect(qs('drcTier'), ["SIMPLE","BASIC","PREMIUM"], av.DRC?.allowed===false, av.DRC?.reason)
+    setSelect(qs('bcmTier'), (av.BACKCAM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BACKCAM?.allowed===false, av.BACKCAM?.reason)
+    setSelect(qs('rseTier'), ["SIMPLE","BASIC","PREMIUM"], av.RSE?.allowed===false, av.RSE?.reason)
+  }catch(e){ qs('msg').textContent = e.message }
+}
+
+qs('btnQuote').onclick = async ()=>{
+  qs('msg').textContent = ''
+  try{
+    if(!BRANCH_CODE) throw new Error("店舗情報（branch）がQRに含まれていません。正しいQRからアクセスしてください。");
+    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
+    const payload = {
+      dealer: DEALER_CODE, branch: BRANCH_CODE, salesperson: qs('salesperson').value.trim(), vehicle,
+      selections: { NAV: qs('navTier').value || null, ETC: qs('etcTier').value || null, DRC: qs('drcTier').value || null, BACKCAM: qs('bcmTier').value || null, RSE: qs('rseTier').value || null },
+      options: [
+        ...(qs('optUSB').checked?  ['OPT_USB']:[]),
+        ...(qs('optHDMI').checked? ['OPT_HDMI']:[]),
+        ...(qs('optOTTO').checked? ['OPT_OTTOCAST']:[])
+      ]
+    }
+    const data = await callFlow(payload)
+    if(data.validation?.errors?.length){
+      qs('msg').textContent = data.validation.errors.join(' / '); qs('result').style.display='none'; return
+    }
+    const linesEl = qs('lines'); linesEl.innerHTML = ''
+    ;(data.display?.lines||[]).forEach(l=>{ linesEl.insertAdjacentHTML('beforeend', `<div class="row"><div>${l.name}</div><div style='text-align:right'>¥${Number(l.price).toLocaleString()}</div></div>`) })
+    qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString()
+    qs('notes').textContent = (data.display?.notes||[]).join(' / ')
+    qs('result').style.display = 'block'
+  }catch(e){ qs('msg').textContent = e.message }
+}
+</script>
+</body>
+</html>
