@@ -35,6 +35,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .note{font-size:12px;color:#374151;margin-top:8px}
 .iteminfo{font-size:12px;color:#374151;margin-top:6px;white-space:pre-wrap}
 
+/* --- breakdown table --- */
+.tbl { width:100%; border-collapse:collapse; margin-top:8px; font-size:13px }
+.tbl th, .tbl td { border:1px solid #e5e7eb; padding:6px 8px; vertical-align:top }
+.tbl th { background:#f9fafb; text-align:left; white-space:nowrap }
+.toggle { margin-top:10px }
+
 /* ==== Loading overlay ==== */
 .loading {
   position: fixed; inset: 0; display: none; place-items: center;
@@ -138,6 +144,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <div class="card" id="result" style="display:none">
     <div id="lines"></div>
     <div class="total" id="grand"></div>
+    <button id="toggleDetail" class="btn-ghost toggle" style="display:none">詳細を表示</button>
+    <div id="breakdown" style="display:none"></div>
     <div id="notes" class="note"></div>
   </div>
 
@@ -151,7 +159,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <script>
 /* ===== 設定 ===== */
-const FLOW_URL = "https://default65d7f344287e476a8e27e2ad17aaf5.f3.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/cc92c47cc1374afcb742cad801a2de4d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qFlUmKJ42rtDOVD9jRbRy1NkE3AQTQmQMgX15viXKuA";
+const FLOW_URL = "https://default65d7f344287e476a8e27e2ad17aaf5f3.powerautomate.azure-apim.net/automations/direct/workflows/cc92c47cc1374afcb742cad801a2de4d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qFlUmKJ42rtDOVD9jRbRy1NkE3AQTQmQMgX15viXKuA";
 const DEALER_CODE = "NISSAN_FUKUOKA";
 const params = new URLSearchParams(location.search);
 const BRANCH_CODE = (params.get('branch')||'').trim();
@@ -190,7 +198,6 @@ function setSelect(el, tiers, disabled, reason){
 
 /* ===== リセット関数（車種変更時に初期化） ===== */
 function resetProductSelections(){
-  // セレクト初期化（可用性ロードまで一時的に無効化）
   ['navTier','etcTier','drcTier','bcmTier','rseTier','optUSB','optHDMI','optOTTO'].forEach(id=>{
     const el = qs(id);
     if(!el) return;
@@ -198,12 +205,10 @@ function resetProductSelections(){
     el.innerHTML = '<option value="">選択なし</option>';
     el.disabled = true;
   });
-  // 表示クリア
   ['navInfo','etcInfo','drcInfo','bcmInfo','rseInfo','optUSBInfo','optHDMIInfo','optOTTOInfo'].forEach(id=>{
     const info = qs(id);
     if(info) info.textContent = '';
   });
-  // 内部保持もクリア
   if (typeof selectedCatalogInfo === 'object' && selectedCatalogInfo){
     Object.keys(selectedCatalogInfo).forEach(k => selectedCatalogInfo[k] = null);
   }
@@ -252,7 +257,7 @@ qs('manualToggleBtn').addEventListener('click', (e)=>{
   const manual = qs('vehicleManual'); const sel = qs('vehicleSelect');
   if(pressed){ btn.setAttribute('aria-pressed','false'); btn.textContent='リストにない場合は手入力に切替'; manual.style.display='none'; manual.value=''; sel.disabled=false; }
   else{ btn.setAttribute('aria-pressed','true'); btn.textContent='手入力をやめてリストに戻す'; manual.style.display=''; sel.disabled=true; manual.focus(); }
-  resetProductSelections();     // ★ 追加：切替時に初期化
+  resetProductSelections();
   triggerAvailability();
 });
 function getVehicleCode(){ return (qs('manualToggleBtn').getAttribute('aria-pressed')==='true' ? (qs('vehicleManual').value||'') : (qs('vehicleSelect').value||'')).trim().toUpperCase(); }
@@ -285,16 +290,8 @@ async function loadAvailability(){
   }
 }
 const triggerAvailability = debounce(loadAvailability, 350);
-
-/* 車種選択・手入力で変更があったら初期化→再取得 */
-qs('vehicleSelect').addEventListener('change', ()=>{
-  resetProductSelections();      // ★ 追加：初期化
-  triggerAvailability();
-});
-qs('vehicleManual').addEventListener('input', ()=>{
-  resetProductSelections();      // ★ 追加：初期化
-  triggerAvailability();
-});
+qs('vehicleSelect').addEventListener('change', ()=>{ resetProductSelections(); triggerAvailability(); });
+qs('vehicleManual').addEventListener('input', ()=>{ resetProductSelections(); triggerAvailability(); });
 
 /* ===== 02_Catalog_Main：商品名(field_3)/詳細(field_4) 取得＆表示 ===== */
 async function fetchCatalogItem(category, { grade=null, code=null }){
@@ -319,9 +316,7 @@ async function onMainSelect(category, selectId, infoId){
     const info = await fetchCatalogItem(category, { grade });
     renderItemInfo(infoId, info);
     selectedCatalogInfo[category] = { category, grade, ...info };
-  } finally {
-    hideLoading();
-  }
+  } finally { hideLoading(); }
 }
 
 /* オプション：一覧 → セレクト生成（値は code） */
@@ -354,9 +349,7 @@ async function onOptionSelect(category, selectId, infoId){
     const info = await fetchCatalogItem(category, { code });
     renderItemInfo(infoId, info);
     selectedCatalogInfo[category] = { category, code, ...info };
-  } finally {
-    hideLoading();
-  }
+  } finally { hideLoading(); }
 }
 
 /* 選択されたカタログ情報を保持（見積POSTに同梱） */
@@ -376,7 +369,7 @@ qs('optUSB').addEventListener('change', ()=> onOptionSelect('OPT_USB','optUSB','
 qs('optHDMI').addEventListener('change', ()=> onOptionSelect('OPT_HDMI','optHDMI','optHDMIInfo'));
 qs('optOTTO').addEventListener('change', ()=> onOptionSelect('OPT_OTTOCAST','optOTTO','optOTTOInfo'));
 
-/* ===== 見積（POST → 結果表示） ===== */
+/* ===== 見積（POST → 結果表示＋内訳） ===== */
 qs('btnQuote').onclick = async ()=>{
   const btn = qs('btnQuote');
   qs('msg').textContent = '';
@@ -428,6 +421,74 @@ qs('btnQuote').onclick = async ()=>{
     qs('result').style.display = 'block';
     await sleep(50);
     document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+
+    /* --- 詳細内訳の構築＆トグル --- */
+    const bd = qs('breakdown');
+    const btnT = qs('toggleDetail');
+    const fmt = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
+    const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k);
+    const t = data.totals || {};
+    const ctx = data.context || {};
+
+    const rows = (data.display?.lines || []).map(l=>{
+      const name = l.name || '';
+      const detail = l.detail || '';
+      const code = l.code || '';
+      const grade = l.grade || '';
+      const part = has(l,'part') ? `¥${fmt(l.part)}` : '-';
+      const labor= has(l,'labor')? `¥${fmt(l.labor)}`: '-';
+      const coef = has(l,'coef') ? String(l.coef) : '-';
+      const price= `¥${fmt(l.price)}`;
+      return `
+        <tr>
+          <td>${name}${code?`<div class="small">コード: ${code}</div>`:''}${grade?`<div class="small">グレード: ${grade}</div>`:''}${detail?`<div class="small" style="white-space:pre-wrap">${detail}</div>`:''}</td>
+          <td style="text-align:right">${part}</td>
+          <td style="text-align:right">${labor}</td>
+          <td style="text-align:right">${coef}</td>
+          <td style="text-align:right"><b>${price}</b></td>
+        </tr>
+      `;
+    }).join('');
+
+    const summaryRows = [
+      has(t,'subtotal')        ? `<tr><th>小計（税抜）</th><td style="text-align:right">¥${fmt(t.subtotal)}</td></tr>` : '',
+      has(t,'roundUnit')       ? `<tr><th>丸め単位</th><td style="text-align:right">${t.roundUnit}</td></tr>` : '',
+      has(t,'subtotalRounded') ? `<tr><th>小計（丸め後・税抜）</th><td style="text-align:right">¥${fmt(t.subtotalRounded)}</td></tr>` : '',
+      has(t,'taxRate')         ? `<tr><th>消費税率</th><td style="text-align:right">${t.taxRate}%</td></tr>` : '',
+      has(t,'taxInt')          ? `<tr><th>消費税額</th><td style="text-align:right">¥${fmt(t.taxInt)}</td></tr>` : '',
+      has(t,'grand')           ? `<tr><th>合計（税込）</th><td style="text-align:right"><b>¥${fmt(t.grand)}</b></td></tr>` : ''
+    ].filter(Boolean).join('');
+
+    const headerKV = [
+      ctx.dealer  ? `<div>ディーラー：${ctx.dealer}</div>` : '',
+      ctx.branch  ? `<div>店舗：${ctx.branch}</div>` : '',
+      ctx.vehicle ? `<div>車種コード：${ctx.vehicle}</div>` : '',
+      (qs('salesperson').value||'') ? `<div>担当：${qs('salesperson').value}</div>` : ''
+    ].filter(Boolean).join('');
+
+    bd.innerHTML = `
+      ${headerKV ? `<div class="small" style="margin-bottom:8px;color:#374151">${headerKV}</div>` : ''}
+
+      <div style="font-weight:700;margin:6px 0 4px">ライン明細</div>
+      <table class="tbl">
+        <thead><tr><th>項目</th><th style="text-align:right">部品</th><th style="text-align:right">工賃</th><th style="text-align:right">係数</th><th style="text-align:right">計</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="5" class="small">明細情報が取得できませんでした</td></tr>`}</tbody>
+      </table>
+
+      <div style="font-weight:700;margin:12px 0 4px">サマリ</div>
+      <table class="tbl"><tbody>${summaryRows}</tbody></table>
+    `;
+
+    btnT.style.display = 'inline-block';
+    bd.style.display = 'none';
+    btnT.textContent = '詳細を表示';
+    btnT.onclick = ()=>{
+      const isOpen = bd.style.display !== 'none';
+      bd.style.display = isOpen ? 'none' : 'block';
+      btnT.textContent = isOpen ? '詳細を表示' : '詳細を閉じる';
+    };
+    /* --- ここまで内訳 --- */
+
   }catch(e){
     qs('msg').textContent = e.message || '処理に失敗しました';
   }finally{
