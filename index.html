@@ -159,7 +159,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <script>
 /* ===== 設定 ===== */
-const FLOW_URL = "https://default65d7f344287e476a8e27e2ad17aaf5f3.powerautomate.azure-apim.net/automations/direct/workflows/cc92c47cc1374afcb742cad801a2de4d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qFlUmKJ42rtDOVD9jRbRy1NkE3AQTQmQMgX15viXKuA";
+/* ★動いていた方の URL に戻しました */
+const FLOW_URL = "https://default65d7f344287e476a8e27e2ad17aaf5.f3.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/cc92c47cc1374afcb742cad801a2de4d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qFlUmKJ42rtDOVD9jRbRy1NkE3AQTQmQMgX15viXKuA";
 const DEALER_CODE = "NISSAN_FUKUOKA";
 const params = new URLSearchParams(location.search);
 const BRANCH_CODE = (params.get('branch')||'').trim();
@@ -190,7 +191,7 @@ async function callFlow(body){
 }
 
 function setSelect(el, tiers, disabled, reason){
-  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIUM:"プレミアム"};
+  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIアム:"プレミアム"};
   el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
   if(!disabled){ (tiers||[]).forEach(t=> el.insertAdjacentHTML('beforeend', `<option value="${t}">${labels[t]||t}</option>`)); }
   el.disabled = !!disabled;
