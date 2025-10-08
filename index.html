@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>【日産福岡販売様】簡易見積ツール</title>
+<title>【日産福岡販売様】簡易見積ツール（完全版）</title>
 <style>
 :root{--pad:14px;--gap:12px;--radius:14px;--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#ffffff}
 html,body{background:#fafafa;color:var(--fg)}
@@ -54,6 +54,19 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-msg { margin-top: 10px; color:#374151; font-size:14px; text-align:center }
+
+/* ==== Export actions ==== */
+.export-actions{margin:12px 0; display:flex; gap:8px}
+.btn{padding:8px 12px; border:1px solid #ddd; background:#fff; cursor:pointer; color:#111827}
+.btn:hover{background:#f5f5f5}
+
+/* ==== Print optimization ==== */
+@media print{
+  .export-actions, .global-header, .footer, .spinner, .toggle, #btnQuote, #manualToggleBtn, .header { display:none !important; }
+  #quoteRoot, #result { width:100% !important; margin:0 !important; }
+  table { page-break-inside:auto; }
+  tr, td, th { page-break-inside:avoid; page-break-after:auto; }
+}
 </style>
 </head>
 <body>
@@ -142,6 +155,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
   <!-- 結果 -->
   <div class="card" id="result" style="display:none">
+    <div class="export-actions">
+      <button id="btnCsv" class="btn">CSV出力</button>
+      <button id="btnPdf" class="btn">PDF/印刷</button>
+    </div>
     <div id="lines"></div>
     <div class="total" id="grand"></div>
     <button id="toggleDetail" class="btn-ghost toggle" style="display:none">詳細を表示</button>
@@ -191,7 +208,7 @@ async function callFlow(body){
 }
 
 function setSelect(el, tiers, disabled, reason){
-  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIアム:"プレミアム"};
+  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIUM:"プレミアム"};
   el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
   if(!disabled){ (tiers||[]).forEach(t=> el.insertAdjacentHTML('beforeend', `<option value="${t}">${labels[t]||t}</option>`)); }
   el.disabled = !!disabled;
@@ -370,6 +387,43 @@ qs('optUSB').addEventListener('change', ()=> onOptionSelect('OPT_USB','optUSB','
 qs('optHDMI').addEventListener('change', ()=> onOptionSelect('OPT_HDMI','optHDMI','optHDMIInfo'));
 qs('optOTTO').addEventListener('change', ()=> onOptionSelect('OPT_OTTOCAST','optOTTO','optOTTOInfo'));
 
+/* ===== CSVエクスポート & 印刷 ===== */
+function exportLinesToCSV(lines, summary, filename = "見積明細.csv"){
+  if (!Array.isArray(lines) || lines.length === 0) {
+    alert("エクスポート対象の明細がありません。");
+    return;
+  }
+  const preferredOrder = ["name","qty","unit","amount","price","part","labor","coef","code","grade","detail"];
+  const presentKeys = new Set();
+  for (const row of lines) { Object.keys(row||{}).forEach(k => presentKeys.add(k)); }
+  const headers = preferredOrder.filter(k => presentKeys.has(k));
+  const jpHeader = {
+    name:"品目", qty:"数量", unit:"単価", amount:"金額", price:"計",
+    part:"部材", labor:"工賃", coef:"係数", code:"コード", grade:"グレード", detail:"詳細"
+  };
+  const headerRow = headers.map(h => jpHeader[h] || h);
+  const escapeCSV = (v) => {
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const rows = [headerRow.join(",")];
+  for (const r of lines) { rows.push(headers.map(h => escapeCSV(r[h])).join(",")); }
+  if (summary) {
+    rows.push("");
+    if (summary.subtotal!=null) rows.push(["小計", "", "", summary.subtotal].join(","));
+    if (summary.tax!=null) rows.push(["消費税", "", "", summary.tax].join(","));
+    if (summary.totalRounded!=null) rows.push(["合計", "", "", summary.totalRounded].join(","));
+  }
+  const csv = rows.join("\n");
+  const blob = new Blob([new Uint8Array([0xEF,0xBB,0xBF]), csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+}
+function printQuote(){ window.print(); }
+
 /* ===== 見積（POST → 結果表示＋内訳） ===== */
 qs('btnQuote').onclick = async ()=>{
   const btn = qs('btnQuote');
@@ -408,56 +462,70 @@ qs('btnQuote').onclick = async ()=>{
       return;
     }
 
+    // シンプル行
     const linesEl = qs('lines'); linesEl.innerHTML = '';
     (data.display?.lines||[]).forEach(l=>{
       const name = l.name || '';
       const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
       linesEl.insertAdjacentHTML('beforeend',
-        `<div class="line"><div>${name}${detail}</div><div>¥${Number(l.price||0).toLocaleString()}</div></div>`
+        `<div class="line"><div>${name}${detail}</div><div>¥${Number(l.price||l.amount||0).toLocaleString()}</div></div>`
       );
     });
 
     qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString();
     qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
     qs('result').style.display = 'block';
+    window.lastQuote = data; // エクスポート用に保持
     await sleep(50);
     document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
 
-    /* --- 詳細内訳の構築＆トグル --- */
+    /* --- 詳細内訳（可変列ヘッダ） --- */
     const bd = qs('breakdown');
     const btnT = qs('toggleDetail');
     const fmt = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
-    const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k);
+    const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
     const t = data.totals || {};
     const ctx = data.context || {};
 
-    const rows = (data.display?.lines || []).map(l=>{
+    const lines = data.display?.lines || [];
+    const colPart  = lines.some(l=>has(l,'part'));
+    const colLabor = lines.some(l=>has(l,'labor'));
+    const colCoef  = lines.some(l=>has(l,'coef'));
+    const colCode  = lines.some(l=>has(l,'code'));
+    const colGrade = lines.some(l=>has(l,'grade'));
+
+    // ヘッダ構築
+    const headers = ["項目"];
+    if(colPart)  headers.push("部品");
+    if(colLabor) headers.push("工賃");
+    if(colCoef)  headers.push("係数");
+    headers.push("計");
+
+    const headHtml = `<tr>${headers.map(h=>`<th${h!=="項目"?" style=\"text-align:right\"":""}>${h}</th>`).join('')}</tr>`;
+
+    const rows = lines.map(l=>{
       const name = l.name || '';
       const detail = l.detail || '';
       const code = l.code || '';
       const grade = l.grade || '';
-      const part = has(l,'part') ? `¥${fmt(l.part)}` : '-';
-      const labor= has(l,'labor')? `¥${fmt(l.labor)}`: '-';
-      const coef = has(l,'coef') ? String(l.coef) : '-';
-      const price= `¥${fmt(l.price)}`;
-      return `
-        <tr>
-          <td>${name}${code?`<div class="small">コード: ${code}</div>`:''}${grade?`<div class="small">グレード: ${grade}</div>`:''}${detail?`<div class="small" style="white-space:pre-wrap">${detail}</div>`:''}</td>
-          <td style="text-align:right">${part}</td>
-          <td style="text-align:right">${labor}</td>
-          <td style="text-align:right">${coef}</td>
-          <td style="text-align:right"><b>${price}</b></td>
-        </tr>
-      `;
+      const price= `¥${fmt(l.price!=null?l.price:l.amount)}`;
+      const cells = [];
+      const left = `${name}${colCode&&code?`<div class=\"small\">コード: ${code}</div>`:''}${colGrade&&grade?`<div class=\"small\">グレード: ${grade}</div>`:''}${detail?`<div class=\"small\" style=\"white-space:pre-wrap\">${detail}</div>`:''}`;
+      cells.push(`<td>${left}</td>`);
+      if(colPart)  cells.push(`<td style=\"text-align:right\">${has(l,'part')?`¥${fmt(l.part)}`:'-'}</td>`);
+      if(colLabor) cells.push(`<td style=\"text-align:right\">${has(l,'labor')?`¥${fmt(l.labor)}`:'-'}</td>`);
+      if(colCoef)  cells.push(`<td style=\"text-align:right\">${has(l,'coef')?String(l.coef):'-'}</td>`);
+      cells.push(`<td style=\"text-align:right\"><b>${price}</b></td>`);
+      return `<tr>${cells.join('')}</tr>`;
     }).join('');
 
     const summaryRows = [
-      has(t,'subtotal')        ? `<tr><th>小計（税抜）</th><td style="text-align:right">¥${fmt(t.subtotal)}</td></tr>` : '',
-      has(t,'roundUnit')       ? `<tr><th>丸め単位</th><td style="text-align:right">${t.roundUnit}</td></tr>` : '',
-      has(t,'subtotalRounded') ? `<tr><th>小計（丸め後・税抜）</th><td style="text-align:right">¥${fmt(t.subtotalRounded)}</td></tr>` : '',
-      has(t,'taxRate')         ? `<tr><th>消費税率</th><td style="text-align:right">${t.taxRate}%</td></tr>` : '',
-      has(t,'taxInt')          ? `<tr><th>消費税額</th><td style="text-align:right">¥${fmt(t.taxInt)}</td></tr>` : '',
-      has(t,'grand')           ? `<tr><th>合計（税込）</th><td style="text-align:right"><b>¥${fmt(t.grand)}</b></td></tr>` : ''
+      (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">¥${fmt(t.subtotal)}</td></tr>` : '',
+      (t.roundUnit!=null)       ? `<tr><th>丸め単位</th><td style=\"text-align:right\">${t.roundUnit}</td></tr>` : '',
+      (t.subtotalRounded!=null) ? `<tr><th>小計（丸め後・税抜）</th><td style=\"text-align:right\">¥${fmt(t.subtotalRounded)}</td></tr>` : '',
+      (t.taxRate!=null)         ? `<tr><th>消費税率</th><td style=\"text-align:right\">${t.taxRate}%</td></tr>` : '',
+      (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">¥${fmt(t.taxInt)}</td></tr>` : '',
+      (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>¥${fmt(t.grand)}</b></td></tr>` : ''
     ].filter(Boolean).join('');
 
     const headerKV = [
@@ -472,8 +540,8 @@ qs('btnQuote').onclick = async ()=>{
 
       <div style="font-weight:700;margin:6px 0 4px">ライン明細</div>
       <table class="tbl">
-        <thead><tr><th>項目</th><th style="text-align:right">部品</th><th style="text-align:right">工賃</th><th style="text-align:right">係数</th><th style="text-align:right">計</th></tr></thead>
-        <tbody>${rows || `<tr><td colspan="5" class="small">明細情報が取得できませんでした</td></tr>`}</tbody>
+        <thead>${headHtml}</thead>
+        <tbody>${rows || `<tr><td colspan="${headers.length}" class="small">明細情報が取得できませんでした</td></tr>`}</tbody>
       </table>
 
       <div style="font-weight:700;margin:12px 0 4px">サマリ</div>
@@ -496,6 +564,25 @@ qs('btnQuote').onclick = async ()=>{
     hideLoading(); btn.disabled = false;
   }
 };
+
+/* ===== QR branch 自動反映（起動時） ===== */
+(function initBranchFromQR(){
+  const badge = qs('branchBadge');
+  if(!BRANCH_CODE){ badge.textContent = '店舗：未指定（QRのbranchが必要）'; }
+})();
+
+/* ===== エクスポートボタン紐付け ===== */
+(function bindExportButtons(){
+  const btnCsv = document.getElementById('btnCsv');
+  const btnPdf = document.getElementById('btnPdf');
+  if (btnCsv) btnCsv.addEventListener('click', ()=>{
+    const q = window.lastQuote;
+    if (!q?.display?.lines) return alert('見積結果がありません。');
+    const summary = q.display?.summary || { subtotal:q.totals?.subtotalRounded, tax:q.totals?.taxInt, totalRounded:q.totals?.grand };
+    exportLinesToCSV(q.display.lines, summary, '見積明細.csv');
+  });
+  if (btnPdf) btnPdf.addEventListener('click', ()=> printQuote());
+})();
 </script>
 </body>
 </html>
