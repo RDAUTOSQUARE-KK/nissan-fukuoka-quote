@@ -34,6 +34,20 @@ button:disabled{opacity:.5;cursor:not-allowed}
 @media (max-width:480px){.row-2{grid-template-columns:1fr}}
 .note{font-size:12px;color:#374151;margin-top:8px}
 .iteminfo{font-size:12px;color:#374151;margin-top:6px;white-space:pre-wrap}
+
+/* ==== Loading overlay ==== */
+.loading {
+  position: fixed; inset: 0; display: none; place-items: center;
+  background: rgba(255,255,255,.75); backdrop-filter: blur(1px); z-index: 9999;
+}
+.loading.show { display: grid; }
+.spinner {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 4px solid #e5e7eb; border-top-color: #111827;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-msg { margin-top: 10px; color:#374151; font-size:14px; text-align:center }
 </style>
 </head>
 <body>
@@ -115,7 +129,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <div class="stack">
         <button id="btnQuote">見積を表示</button>
         <div id="msg" class="err"></div>
-        <div class="small">※ 店舗はQRコードで自動取得します。</div>
+        <div class="small">※ 店舗はQRのbranchパラメータから自動取得します。</div>
       </div>
     </div>
   </div>
@@ -125,6 +139,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
     <div id="lines"></div>
     <div class="total" id="grand"></div>
     <div id="notes" class="note"></div>
+  </div>
+
+  <!-- Loading overlay -->
+  <div id="loading" class="loading" aria-live="polite" aria-busy="true">
+    <div style="display:flex; flex-direction:column; align-items:center;">
+      <div class="spinner" role="progressbar" aria-label="読込中"></div>
+      <div class="loading-msg" id="loadingMsg">読込中です…</div>
+    </div>
   </div>
 
 <script>
@@ -139,6 +161,10 @@ const qs = id => document.getElementById(id);
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 let debounceTimer=null;
 function debounce(fn, ms=400){ return (...a)=>{ clearTimeout(debounceTimer); debounceTimer=setTimeout(()=>fn(...a), ms); }; }
+
+/* Loading overlay helpers */
+function showLoading(msg){ const l=qs('loading'); const m=qs('loadingMsg'); if(msg) m.textContent=msg; l.classList.add('show'); }
+function hideLoading(){ qs('loading').classList.remove('show'); }
 
 /* 全リクエストに dealer / branch を自動付与（x-api-keyは送らない）*/
 async function callFlow(body){
@@ -156,7 +182,7 @@ async function callFlow(body){
 }
 
 function setSelect(el, tiers, disabled, reason){
-  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIアム:"プレミアム",PREMIUM:"プレミアム"};
+  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIUM:"プレミアム"};
   el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
   if(!disabled){ (tiers||[]).forEach(t=> el.insertAdjacentHTML('beforeend', `<option value="${t}">${labels[t]||t}</option>`)); }
   el.disabled = !!disabled;
@@ -167,11 +193,13 @@ function setSelect(el, tiers, disabled, reason){
   const badge = qs('branchBadge'); const contact = qs('branchContact');
   if(!BRANCH_CODE){ badge.textContent = "店舗：未指定（QRのbranchが必要）"; return; }
   try{
+    showLoading("店舗情報を取得中…");
     const info = await callFlow({ intent:"branchInfo", vehicle:"" });
     const b = info.branch || {};
     badge.textContent = "店舗：" + ((info.found && b.name)? b.name : BRANCH_CODE);
     if(b.tel || b.fax){ contact.textContent = `TEL: ${b.tel||'-'} / FAX: ${b.fax||'-'}`; }
   }catch{ badge.textContent = "店舗：取得失敗"; }
+  finally{ hideLoading(); }
 })();
 
 /* ===== 車種セレクト（04_VehicleDifficulty: field_2=code / field_1=label） ===== */
@@ -180,6 +208,7 @@ async function initVehicleSelect(){
   sel.disabled = true;
   sel.innerHTML = '<option value="">車種を読み込み中…</option>';
   try{
+    showLoading("車種リストを取得中…");
     const res = await callFlow({ intent: "listVehicles" });
     const items = Array.isArray(res.items) ? res.items : [];
     if(items.length === 0){ sel.innerHTML = '<option value="">登録が見つかりません</option>'; sel.disabled = false; return; }
@@ -192,7 +221,7 @@ async function initVehicleSelect(){
   }catch(e){
     sel.innerHTML = '<option value="">読み込みに失敗しました（手入力に切替可）</option>';
     qs('msg').textContent = '車種リストの取得に失敗：' + e.message;
-  }finally{ sel.disabled = false; }
+  }finally{ sel.disabled = false; hideLoading(); }
 }
 initVehicleSelect();
 
@@ -206,13 +235,14 @@ qs('manualToggleBtn').addEventListener('click', (e)=>{
 });
 function getVehicleCode(){ return (qs('manualToggleBtn').getAttribute('aria-pressed')==='true' ? (qs('vehicleManual').value||'') : (qs('vehicleSelect').value||'')).trim().toUpperCase(); }
 
-/* ===== 可用性の自動読み込み ===== */
+/* ===== 可用性の自動読み込み（スピナー付き） ===== */
 async function loadAvailability(){
   qs('msg').textContent = '';
   const vehicle = getVehicleCode();
   if(!BRANCH_CODE || !vehicle){ return; }
   try{
-    const payload = { dealer: "NISSAN_FUKUOKA", branch: BRANCH_CODE, vehicle, intent: "availability" };
+    showLoading("可用性を取得中…");
+    const payload = { dealer: DEALER_CODE, branch: BRANCH_CODE, vehicle, intent: "availability" };
     const data = await callFlow(payload);
     const av = data.availability || {};
     setSelect(qs('navTier'), (av.NAV?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.NAV?.allowed===false, av.NAV?.reason);
@@ -228,6 +258,8 @@ async function loadAvailability(){
 
   }catch(e){
     qs('msg').textContent = '可用性の取得に失敗しました: ' + e.message;
+  }finally{
+    hideLoading();
   }
 }
 const triggerAvailability = debounce(loadAvailability, 350);
@@ -252,9 +284,14 @@ function renderItemInfo(elId, info){
 async function onMainSelect(category, selectId, infoId){
   const grade = (qs(selectId).value||'').trim();
   if(!grade){ renderItemInfo(infoId, null); selectedCatalogInfo[category]=null; return; }
-  const info = await fetchCatalogItem(category, { grade });
-  renderItemInfo(infoId, info);
-  selectedCatalogInfo[category] = { category, grade, ...info };
+  try{
+    showLoading("商品情報を取得中…");
+    const info = await fetchCatalogItem(category, { grade });
+    renderItemInfo(infoId, info);
+    selectedCatalogInfo[category] = { category, grade, ...info };
+  } finally {
+    hideLoading();
+  }
 }
 
 /* オプション：一覧 → セレクト生成（値は code） */
@@ -282,9 +319,14 @@ async function initOptionSelect(optCategory, selectId){
 async function onOptionSelect(category, selectId, infoId){
   const code = (qs(selectId).value||'').trim();
   if(!code){ renderItemInfo(infoId, null); selectedCatalogInfo[category]=null; return; }
-  const info = await fetchCatalogItem(category, { code });
-  renderItemInfo(infoId, info);
-  selectedCatalogInfo[category] = { category, code, ...info };
+  try{
+    showLoading("商品情報を取得中…");
+    const info = await fetchCatalogItem(category, { code });
+    renderItemInfo(infoId, info);
+    selectedCatalogInfo[category] = { category, code, ...info };
+  } finally {
+    hideLoading();
+  }
 }
 
 /* 選択されたカタログ情報を保持（見積POSTに同梱） */
@@ -306,34 +348,31 @@ qs('optOTTO').addEventListener('change', ()=> onOptionSelect('OPT_OTTOCAST','opt
 
 /* ===== 見積（POST → 結果表示） ===== */
 qs('btnQuote').onclick = async ()=>{
+  const btn = qs('btnQuote');
   qs('msg').textContent = '';
+  btn.disabled = true; showLoading("見積を計算中…");
   try{
     if(!BRANCH_CODE) throw new Error("店舗情報（branch）がQRに含まれていません。正しいQRからアクセスしてください。");
     const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
 
     const selTo10 = v => v && v.length ? "1" : "0";
-
     const payload = {
       intent: "quote",
       salesperson: qs('salesperson').value.trim(),
       vehicle,
-
       nav_selected: selTo10(qs('navTier').value),
       etc_selected: selTo10(qs('etcTier').value),
       drc_selected: selTo10(qs('drcTier').value),
       bcm_selected: selTo10(qs('bcmTier').value),
       rse_selected: selTo10(qs('rseTier').value),
-
       nav_grade: qs('navTier').value || null,
       etc_grade: qs('etcTier').value || null,
       drc_grade: qs('drcTier').value || null,
       bcm_grade: qs('bcmTier').value || null,
       rse_grade: qs('rseTier').value || null,
-
       opt_usb_code: (qs('optUSB').value||null),
       opt_hdmi_code: (qs('optHDMI').value||null),
       opt_otto_code: (qs('optOTTO').value||null),
-
       selectedItems: Object.values(selectedCatalogInfo).filter(Boolean)
     };
 
@@ -356,12 +395,13 @@ qs('btnQuote').onclick = async ()=>{
 
     qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString();
     qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
-
     qs('result').style.display = 'block';
     await sleep(50);
     document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){
-    qs('msg').textContent = e.message;
+    qs('msg').textContent = e.message || '処理に失敗しました';
+  }finally{
+    hideLoading(); btn.disabled = false;
   }
 };
 </script>
