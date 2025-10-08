@@ -188,6 +188,27 @@ function setSelect(el, tiers, disabled, reason){
   el.disabled = !!disabled;
 }
 
+/* ===== リセット関数（車種変更時に初期化） ===== */
+function resetProductSelections(){
+  // セレクト初期化（可用性ロードまで一時的に無効化）
+  ['navTier','etcTier','drcTier','bcmTier','rseTier','optUSB','optHDMI','optOTTO'].forEach(id=>{
+    const el = qs(id);
+    if(!el) return;
+    el.value = '';
+    el.innerHTML = '<option value="">選択なし</option>';
+    el.disabled = true;
+  });
+  // 表示クリア
+  ['navInfo','etcInfo','drcInfo','bcmInfo','rseInfo','optUSBInfo','optHDMIInfo','optOTTOInfo'].forEach(id=>{
+    const info = qs(id);
+    if(info) info.textContent = '';
+  });
+  // 内部保持もクリア
+  if (typeof selectedCatalogInfo === 'object' && selectedCatalogInfo){
+    Object.keys(selectedCatalogInfo).forEach(k => selectedCatalogInfo[k] = null);
+  }
+}
+
 /* ===== 起動時：店舗情報表示 ===== */
 (async ()=>{
   const badge = qs('branchBadge'); const contact = qs('branchContact');
@@ -231,6 +252,7 @@ qs('manualToggleBtn').addEventListener('click', (e)=>{
   const manual = qs('vehicleManual'); const sel = qs('vehicleSelect');
   if(pressed){ btn.setAttribute('aria-pressed','false'); btn.textContent='リストにない場合は手入力に切替'; manual.style.display='none'; manual.value=''; sel.disabled=false; }
   else{ btn.setAttribute('aria-pressed','true'); btn.textContent='手入力をやめてリストに戻す'; manual.style.display=''; sel.disabled=true; manual.focus(); }
+  resetProductSelections();     // ★ 追加：切替時に初期化
   triggerAvailability();
 });
 function getVehicleCode(){ return (qs('manualToggleBtn').getAttribute('aria-pressed')==='true' ? (qs('vehicleManual').value||'') : (qs('vehicleSelect').value||'')).trim().toUpperCase(); }
@@ -263,8 +285,16 @@ async function loadAvailability(){
   }
 }
 const triggerAvailability = debounce(loadAvailability, 350);
-qs('vehicleSelect').addEventListener('change', triggerAvailability);
-qs('vehicleManual').addEventListener('input', triggerAvailability);
+
+/* 車種選択・手入力で変更があったら初期化→再取得 */
+qs('vehicleSelect').addEventListener('change', ()=>{
+  resetProductSelections();      // ★ 追加：初期化
+  triggerAvailability();
+});
+qs('vehicleManual').addEventListener('input', ()=>{
+  resetProductSelections();      // ★ 追加：初期化
+  triggerAvailability();
+});
 
 /* ===== 02_Catalog_Main：商品名(field_3)/詳細(field_4) 取得＆表示 ===== */
 async function fetchCatalogItem(category, { grade=null, code=null }){
