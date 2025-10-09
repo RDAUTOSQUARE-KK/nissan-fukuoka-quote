@@ -74,10 +74,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
         <label>車種コード（model_code）</label>
         <select id="vehicleSelect"></select>
         <div class="small" id="vehicleHelp">選択/入力すると自動で適合情報を読み込みます。</div>
-        <div class="stack" style="margin-top:6px">
-          <button class="btn-ghost" id="manualToggleBtn" aria-pressed="false">リストにない場合は手入力に切替</button>
-          <input id="vehicleManual" placeholder="例: E13 / C28 / FE0" style="display:none">
-        </div>
+        
       </div>
 
       <!-- メインカテゴリ -->
@@ -116,7 +113,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <!-- オプション（プルダウン） -->
       <div class="row-2">
         <div>
-          <label>携帯充電用USBコード</label>
+          <label>延長保証</label>
           <select id="optUSB"><option value="">選択なし</option></select>
           <div id="optUSBInfo" class="iteminfo"></div>
         </div>
@@ -190,56 +187,34 @@ async function callFlow(body){
   return res.json();
 }
 
-function setSelect(el, tiers, disabled, reason){ if(!el) return;
+function setSelect(el, tiers, disabled, reason){
+  if (!el) return;
   const id = (el && el.id) || "";
-  // Per-category labels
   const labelMaps = {
     navTier: { SIMPLE:"ディスプレイオーディオ7インチ", BASIC:"ベーシック7インチ", PREMIUM:"プレミアム9インチ" },
     etcTier: { SIMPLE:"ETC1.0", BASIC:"ETC2.0", PREMIUM:"ETC2.0ナビ連動" },
     drcTier: { SIMPLE:"フロントのみ1カメラ", BASIC:"前後2カメラ", PREMIUM:"ナビ連動前後2カメラ" },
-    bcmTier: { SIMPLE:"【アラウンドビューモニター用】ナビに映像出力", BASIC:"スタンダードバックカメラ", PREMIUM:null }, // PREMIUMは出さない
+    bcmTier: { SIMPLE:"【アラウンドビューモニター用】ナビに映像出力", BASIC:"スタンダードバックカメラ", PREMIUM:null },
     rseTier: { SIMPLE:"10.1型フリップダウンモニター", BASIC:"9型ヘッドレスト裏モニター2セット（助手席・運転席）", PREMIUM:"13.3型フリップダウンモニター" }
   };
   const defaultLabels = { SIMPLE:"シンプル", BASIC:"ベーシック", PREMIUM:"プレミアム" };
   const labels = labelMaps[id] || defaultLabels;
 
-  // 初期行
-  el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
+  // 先頭項目
+  el.innerHTML = `<option value="">${disabled ? `選択不可（${reason||''}）` : '選択なし'}</option>`;
 
-  // 特例：BCM は PREMIUM を非表示
+  // 特例：BCMはPREMIUMを非表示
   let list = Array.isArray(tiers) ? tiers.slice() : String(tiers||'').split(',');
-  if(id==='bcmTier'){ list = list.filter(t => String(t).toUpperCase() !== 'PREMIUM'); }
+  if (id === 'bcmTier') list = list.filter(t => String(t).toUpperCase().trim() !== 'PREMIUM');
 
-  if(!disabled){
+  if (!disabled) {
     list.forEach(t => {
       const key = String(t).toUpperCase().trim();
       const label = labels[key] ?? defaultLabels[key] ?? key;
-      if(label){ el.insertAdjacentHTML('beforeend', `<option value="${key}">${label}</option>`); }
+      if (label) el.insertAdjacentHTML('beforeend', `<option value="${key}">${label}</option>`);
     });
   }
   el.disabled = !!disabled;
-};
-  el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
-  if(!disabled){ (tiers||[]).forEach(t=> el.insertAdjacentHTML('beforeend', `<option value="${t}">${labels[t]||t}</option>`)); }
-  el.disabled = !!disabled;
-}
-
-/* ===== リセット関数（車種変更時に初期化） ===== */
-function resetProductSelections(){
-  ['navTier','etcTier','drcTier','bcmTier','rseTier','optUSB','optHDMI','optOTTO'].forEach(id=>{
-    const el = qs(id);
-    if(!el) return;
-    el.value = '';
-    el.innerHTML = '<option value="">選択なし</option>';
-    el.disabled = true;
-  });
-  ['navInfo','etcInfo','drcInfo','bcmInfo','rseInfo','optUSBInfo','optHDMIInfo','optOTTOInfo'].forEach(id=>{
-    const info = qs(id);
-    if(info) info.textContent = '';
-  });
-  if (typeof selectedCatalogInfo === 'object' && selectedCatalogInfo){
-    Object.keys(selectedCatalogInfo).forEach(k => selectedCatalogInfo[k] = null);
-  }
 }
 
 /* ===== 起動時：店舗情報表示 ===== */
@@ -279,16 +254,8 @@ async function initVehicleSelect(){
 }
 initVehicleSelect();
 
-/* ===== 手入力モード切替 ===== */
-qs('manualToggleBtn').addEventListener('click', (e)=>{
-  const btn = e.currentTarget, pressed = btn.getAttribute('aria-pressed')==='true';
-  const manual = qs('vehicleManual'); const sel = qs('vehicleSelect');
-  if(pressed){ btn.setAttribute('aria-pressed','false'); btn.textContent='リストにない場合は手入力に切替'; manual.style.display='none'; manual.value=''; sel.disabled=false; }
-  else{ btn.setAttribute('aria-pressed','true'); btn.textContent='手入力をやめてリストに戻す'; manual.style.display=''; sel.disabled=true; manual.focus(); }
-  resetProductSelections();
-  triggerAvailability();
-});
-function getVehicleCode(){ return (qs('manualToggleBtn').getAttribute('aria-pressed')==='true' ? (qs('vehicleManual').value||'') : (qs('vehicleSelect').value||'')).trim().toUpperCase(); }
+/* ===== 手入力モード削除：常にセレクト値を採用 ===== */
+function getVehicleCode(){ return (qs('vehicleSelect')?.value||'').trim().toUpperCase(); }
 
 /* ===== 可用性の自動読み込み（スピナー付き） ===== */
 async function loadAvailability(){
