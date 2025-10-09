@@ -190,7 +190,7 @@ async function callFlow(body){
   return res.json();
 }
 
-function setSelect(el, tiers, disabled, reason){
+function setSelect(el, tiers, disabled, reason){ if(!el) return;
   const id = (el && el.id) || "";
   // Per-category labels
   const labelMaps = {
