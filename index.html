@@ -63,7 +63,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 /* ==== Print optimization ==== */
 @media print{
   .export-actions, .global-header, .footer, .spinner, .toggle, #btnQuote, #manualToggleBtn, .header { display:none !important; }
-  #quoteRoot, #result { width:100% !important; margin:0 !important; }
+  #quoteRoot, #result { width:100% !important; margin:0 !料; }
   table { page-break-inside:auto; }
   tr, td, th { page-break-inside:avoid; page-break-after:auto; }
 }
@@ -129,7 +129,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <!-- オプション（プルダウン） -->
       <div class="row-2">
         <div>
-          <label>携帯充電用USBコード</label>
+          <label>延長保証</label>
           <select id="optUSB"><option value="">選択なし</option></select>
           <div id="optUSBInfo" class="iteminfo"></div>
         </div>
@@ -176,7 +176,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <script>
 /* ===== 設定 ===== */
-/* ★動いていた方の URL に戻しました */
+/* あなたが使っていた URL を維持します */
 const FLOW_URL = "https://default65d7f344287e476a8e27e2ad17aaf5.f3.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/cc92c47cc1374afcb742cad801a2de4d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qFlUmKJ42rtDOVD9jRbRy1NkE3AQTQmQMgX15viXKuA";
 const DEALER_CODE = "NISSAN_FUKUOKA";
 const params = new URLSearchParams(location.search);
@@ -192,7 +192,7 @@ function debounce(fn, ms=400){ return (...a)=>{ clearTimeout(debounceTimer); deb
 function showLoading(msg){ const l=qs('loading'); const m=qs('loadingMsg'); if(msg) m.textContent=msg; l.classList.add('show'); }
 function hideLoading(){ qs('loading').classList.remove('show'); }
 
-/* 全リクエストに dealer / branch を自動付与（x-api-keyは送らない）*/
+/* 全リクエストに dealer / branch を付与 */
 async function callFlow(body){
   const base = { dealer: DEALER_CODE, branch: BRANCH_CODE || '' };
   const res = await fetch(FLOW_URL, {
@@ -207,14 +207,37 @@ async function callFlow(body){
   return res.json();
 }
 
+/* ===== setSelect：見た目そのまま／カテゴリ別ラベル／BCMはPREMIUM非表示 ===== */
 function setSelect(el, tiers, disabled, reason){
-  const labels = {SIMPLE:"シンプル",BASIC:"ベーシック",PREMIUM:"プレミアム"};
+  if(!el) return;
+  const id = el.id || "";
+  const defaultLabels = { SIMPLE:"シンプル", BASIC:"ベーシック", PREMIUM:"プレミアム" };
+  const labelMaps = {
+    navTier: { SIMPLE:"ディスプレイオーディオ7インチ", BASIC:"ベーシック7インチ", PREMIUM:"プレミアム9インチ" },
+    etcTier: { SIMPLE:"ETC1.0", BASIC:"ETC2.0", PREMIUM:"ETC2.0ナビ連動" },
+    drcTier: { SIMPLE:"フロントのみ1カメラ", BASIC:"前後2カメラ", PREMIUM:"ナビ連動前後2カメラ" },
+    bcmTier: { SIMPLE:"【アラウンドビューモニター用】ナビに映像出力", BASIC:"スタンダードバックカメラ", PREMIUM:null },
+    rseTier: { SIMPLE:"10.1型フリップダウンモニター", BASIC:"9型ヘッドレスト裏モニター2セット（助手席・運転席）", PREMIUM:"13.3型フリップダウンモニター" }
+  };
+  const labels = labelMaps[id] || defaultLabels;
+
   el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
-  if(!disabled){ (tiers||[]).forEach(t=> el.insertAdjacentHTML('beforeend', `<option value="${t}">${labels[t]||t}</option>`)); }
+  let list = Array.isArray(tiers) ? tiers.slice() : String(tiers||'').split(',').filter(Boolean);
+
+  // BCMはPREMIUMを出さない
+  if(id === 'bcmTier'){ list = list.filter(t => String(t).toUpperCase().trim() !== 'PREMIUM'); }
+
+  if(!disabled){
+    list.forEach(t=>{
+      const key = String(t).toUpperCase().trim();
+      const label = (labels[key] ?? defaultLabels[key] ?? key);
+      if(label){ el.insertAdjacentHTML('beforeend', `<option value="${key}">${label}</option>`); }
+    });
+  }
   el.disabled = !!disabled;
 }
 
-/* ===== リセット関数（車種変更時に初期化） ===== */
+/* ===== リセット（車種変更時） ===== */
 function resetProductSelections(){
   ['navTier','etcTier','drcTier','bcmTier','rseTier','optUSB','optHDMI','optOTTO'].forEach(id=>{
     const el = qs(id);
@@ -246,7 +269,7 @@ function resetProductSelections(){
   finally{ hideLoading(); }
 })();
 
-/* ===== 車種セレクト（04_VehicleDifficulty: field_2=code / field_1=label） ===== */
+/* ===== 車種（04_VehicleDifficulty） ===== */
 async function initVehicleSelect(){
   const sel = qs('vehicleSelect');
   sel.disabled = true;
@@ -269,7 +292,7 @@ async function initVehicleSelect(){
 }
 initVehicleSelect();
 
-/* ===== 手入力モード切替 ===== */
+/* ===== 手入力モード切替（見た目を維持） ===== */
 qs('manualToggleBtn').addEventListener('click', (e)=>{
   const btn = e.currentTarget, pressed = btn.getAttribute('aria-pressed')==='true';
   const manual = qs('vehicleManual'); const sel = qs('vehicleSelect');
@@ -280,7 +303,7 @@ qs('manualToggleBtn').addEventListener('click', (e)=>{
 });
 function getVehicleCode(){ return (qs('manualToggleBtn').getAttribute('aria-pressed')==='true' ? (qs('vehicleManual').value||'') : (qs('vehicleSelect').value||'')).trim().toUpperCase(); }
 
-/* ===== 可用性の自動読み込み（スピナー付き） ===== */
+/* ===== 可用性 ===== */
 async function loadAvailability(){
   qs('msg').textContent = '';
   const vehicle = getVehicleCode();
@@ -296,7 +319,6 @@ async function loadAvailability(){
     setSelect(qs('bcmTier'), (av.BACKCAM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BACKCAM?.allowed===false, av.BACKCAM?.reason);
     setSelect(qs('rseTier'), (av.RSE?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.RSE?.allowed===false, av.RSE?.reason);
 
-    // オプション一覧（02_Catalog_Main, Title=OPT_*）
     await initOptionSelect('OPT_USB','optUSB');
     await initOptionSelect('OPT_HDMI','optHDMI');
     await initOptionSelect('OPT_OTTOCAST','optOTTO');
@@ -311,7 +333,7 @@ const triggerAvailability = debounce(loadAvailability, 350);
 qs('vehicleSelect').addEventListener('change', ()=>{ resetProductSelections(); triggerAvailability(); });
 qs('vehicleManual').addEventListener('input', ()=>{ resetProductSelections(); triggerAvailability(); });
 
-/* ===== 02_Catalog_Main：商品名(field_3)/詳細(field_4) 取得＆表示 ===== */
+/* ===== カタログ明細 ===== */
 async function fetchCatalogItem(category, { grade=null, code=null }){
   const vehicle = getVehicleCode();
   const payload = { intent:"getCatalogItem", category, grade, code, vehicle };
@@ -325,7 +347,7 @@ function renderItemInfo(elId, info){
   el.textContent = `商品名：${name}\n${detail ? `詳細：${detail}` : ''}`;
 }
 
-/* メインカテゴリ：選択（grade） → 商品名/詳細 */
+/* メインカテゴリ：選択 → 商品名/特徴 */
 async function onMainSelect(category, selectId, infoId){
   const grade = (qs(selectId).value||'').trim();
   if(!grade){ renderItemInfo(infoId, null); selectedCatalogInfo[category]=null; return; }
@@ -337,7 +359,7 @@ async function onMainSelect(category, selectId, infoId){
   } finally { hideLoading(); }
 }
 
-/* オプション：一覧 → セレクト生成（値は code） */
+/* オプション一覧（OPT_*） */
 async function initOptionSelect(optCategory, selectId){
   const sel = qs(selectId);
   sel.disabled = true;
@@ -370,7 +392,7 @@ async function onOptionSelect(category, selectId, infoId){
   } finally { hideLoading(); }
 }
 
-/* 選択されたカタログ情報を保持（見積POSTに同梱） */
+/* 選択されたカタログ情報（見積POSTに同梱） */
 const selectedCatalogInfo = {
   NAV:null, ETC:null, DRC:null, BACKCAM:null, RSE:null,
   OPT_USB:null, OPT_HDMI:null, OPT_OTTOCAST:null
@@ -475,17 +497,14 @@ qs('btnQuote').onclick = async ()=>{
     qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString();
     qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
     qs('result').style.display = 'block';
-    window.lastQuote = data; // エクスポート用に保持
     await sleep(50);
     document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
 
     /* --- 詳細内訳（可変列ヘッダ） --- */
     const bd = qs('breakdown');
     const btnT = qs('toggleDetail');
-    const fmt = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
+    const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
     const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
-    const t = data.totals || {};
-    const ctx = data.context || {};
 
     const lines = data.display?.lines || [];
     const colPart  = lines.some(l=>has(l,'part'));
@@ -494,7 +513,6 @@ qs('btnQuote').onclick = async ()=>{
     const colCode  = lines.some(l=>has(l,'code'));
     const colGrade = lines.some(l=>has(l,'grade'));
 
-    // ヘッダ構築
     const headers = ["項目"];
     if(colPart)  headers.push("部品");
     if(colLabor) headers.push("工賃");
@@ -508,36 +526,28 @@ qs('btnQuote').onclick = async ()=>{
       const detail = l.detail || '';
       const code = l.code || '';
       const grade = l.grade || '';
-      const price= `¥${fmt(l.price!=null?l.price:l.amount)}`;
+      const price= `¥${fmtN(l.price!=null?l.price:l.amount)}`;
       const cells = [];
       const left = `${name}${colCode&&code?`<div class=\"small\">コード: ${code}</div>`:''}${colGrade&&grade?`<div class=\"small\">グレード: ${grade}</div>`:''}${detail?`<div class=\"small\" style=\"white-space:pre-wrap\">${detail}</div>`:''}`;
       cells.push(`<td>${left}</td>`);
-      if(colPart)  cells.push(`<td style=\"text-align:right\">${has(l,'part')?`¥${fmt(l.part)}`:'-'}</td>`);
-      if(colLabor) cells.push(`<td style=\"text-align:right\">${has(l,'labor')?`¥${fmt(l.labor)}`:'-'}</td>`);
+      if(colPart)  cells.push(`<td style=\"text-align:right\">${has(l,'part')?`¥${fmtN(l.part)}`:'-'}</td>`);
+      if(colLabor) cells.push(`<td style=\"text-align:right\">${has(l,'labor')?`¥${fmtN(l.labor)}`:'-'}</td>`);
       if(colCoef)  cells.push(`<td style=\"text-align:right\">${has(l,'coef')?String(l.coef):'-'}</td>`);
       cells.push(`<td style=\"text-align:right\"><b>${price}</b></td>`);
       return `<tr>${cells.join('')}</tr>`;
     }).join('');
 
+    const t = data.totals || {};
     const summaryRows = [
-      (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">¥${fmt(t.subtotal)}</td></tr>` : '',
+      (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotal)}</td></tr>` : '',
       (t.roundUnit!=null)       ? `<tr><th>丸め単位</th><td style=\"text-align:right\">${t.roundUnit}</td></tr>` : '',
-      (t.subtotalRounded!=null) ? `<tr><th>小計（丸め後・税抜）</th><td style=\"text-align:right\">¥${fmt(t.subtotalRounded)}</td></tr>` : '',
+      (t.subtotalRounded!=null) ? `<tr><th>小計（丸め後・税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotalRounded)}</td></tr>` : '',
       (t.taxRate!=null)         ? `<tr><th>消費税率</th><td style=\"text-align:right\">${t.taxRate}%</td></tr>` : '',
-      (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">¥${fmt(t.taxInt)}</td></tr>` : '',
-      (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>¥${fmt(t.grand)}</b></td></tr>` : ''
-    ].filter(Boolean).join('');
-
-    const headerKV = [
-      ctx.dealer  ? `<div>ディーラー：${ctx.dealer}</div>` : '',
-      ctx.branch  ? `<div>店舗：${ctx.branch}</div>` : '',
-      ctx.vehicle ? `<div>車種コード：${ctx.vehicle}</div>` : '',
-      (qs('salesperson').value||'') ? `<div>担当：${qs('salesperson').value}</div>` : ''
+      (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">¥${fmtN(t.taxInt)}</td></tr>` : '',
+      (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>¥${fmtN(t.grand)}</b></td></tr>` : ''
     ].filter(Boolean).join('');
 
     bd.innerHTML = `
-      ${headerKV ? `<div class="small" style="margin-bottom:8px;color:#374151">${headerKV}</div>` : ''}
-
       <div style="font-weight:700;margin:6px 0 4px">ライン明細</div>
       <table class="tbl">
         <thead>${headHtml}</thead>
@@ -556,8 +566,6 @@ qs('btnQuote').onclick = async ()=>{
       bd.style.display = isOpen ? 'none' : 'block';
       btnT.textContent = isOpen ? '詳細を表示' : '詳細を閉じる';
     };
-    /* --- ここまで内訳 --- */
-
   }catch(e){
     qs('msg').textContent = e.message || '処理に失敗しました';
   }finally{
@@ -565,13 +573,13 @@ qs('btnQuote').onclick = async ()=>{
   }
 };
 
-/* ===== QR branch 自動反映（起動時） ===== */
+/* ===== QR branch 表示 ===== */
 (function initBranchFromQR(){
   const badge = qs('branchBadge');
   if(!BRANCH_CODE){ badge.textContent = '店舗：未指定（QRのbranchが必要）'; }
 })();
 
-/* ===== エクスポートボタン紐付け ===== */
+/* ===== エクスポートボタン ===== */
 (function bindExportButtons(){
   const btnCsv = document.getElementById('btnCsv');
   const btnPdf = document.getElementById('btnPdf');
