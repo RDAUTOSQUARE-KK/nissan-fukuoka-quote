@@ -1,39 +1,58 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>見積アシスタント</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>【日産福岡販売様】簡易見積ツール</title>
 <style>
-:root{--gap:12px}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#fff;color:#111827;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
-.container{max-width:980px;margin:0 auto;padding:12px}
-.header{display:flex;gap:8px;align-items:center;padding:8px 0}
-.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#111827;color:#fff;font-size:11px}
-.card{border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-top:12px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
-@media (max-width:840px){.row{grid-template-columns:1fr}}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--gap)}
-label{font-weight:700;font-size:13px;display:block;margin:4px 0}
-input[type="text"], input[type="number"], select{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;font-size:14px}
-.stack{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.checkbox{display:flex;align-items:center;gap:8px}
-.small{font-size:12px}
-hr{border:none;border-top:1px solid #f3f4f6;margin:12px 0}
-.table{width:100%;border-collapse:collapse;margin-top:8px}
-.table th,.table td{font-size:13px;text-align:right;border-bottom:1px dashed #e5e7eb;padding:6px 8px;white-space:nowrap}
-.table th:first-child,.table td:first-child{text-align:left}
+:root{--pad:14px;--gap:12px;--radius:14px;--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#ffffff}
+html,body{background:#fafafa;color:var(--fg)}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;padding:env(safe-area-inset-top) var(--pad) env(safe-area-inset-bottom)}
+.header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 8px}
+.badge{padding:6px 10px;border-radius:999px;background:#f3f4f6;border:1px solid #e5e7eb;font-size:12px;white-space:nowrap}
+.card{border:1px solid var(--bd);border-radius:var(--radius);padding:var(--pad);margin:12px 0;background:var(--bg);box-shadow:0 1px 0 rgba(0,0,0,.02)}
+.stack{display:flex;flex-direction:column;gap:var(--gap)}
+label{font-weight:600;font-size:14px;display:block;margin-bottom:6px}
+input,select,button{padding:12px;border:1px solid #d1d5db;border-radius:10px;width:100%;font-size:16px;background:#fff}
+select{appearance:none;background-image:
+ linear-gradient(45deg, transparent 50%, #9ca3af 50%),
+ linear-gradient(135deg, #9ca3af 50%, transparent 50%),
+ linear-gradient(to right, #d1d5db, #d1d5db);
+background-position:calc(100% - 18px) calc(1em - 2px), calc(100% - 13px) calc(1em - 2px), calc(100% - 2.5rem) 50%;
+background-size:5px 5px,5px 5px,1px 1.8em;background-repeat:no-repeat}
+button{cursor:pointer;background:#111827;color:#fff;border:1px solid #111827;font-weight:700}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:#fff;color:#111827;border:1px solid #d1d5db}
+.small{font-size:12px;color:var(--muted)}
+.err{color:#b00020;margin-top:6px}
+.kv{font-size:13px;color:#374151}
+.kv b{display:inline-block;min-width:3.5rem}
 .line{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed #e5e7eb}
 .line:last-child{border-bottom:none}
 .total{font-size:20px;font-weight:800;margin-top:8px}
-button{cursor:pointer;background:#111827;color:#fff;border:1px solid #111827;font-weight:700;padding:8px 12px;border-radius:10px}
-button.btn-ghost{background:#fff;color:#111827;border:1px solid #d1d5db}
-button:disabled{opacity:.5;cursor:not-allowed}
-.loading{display:none;position:fixed;inset:0;background:rgba(255,255,255,.6);backdrop-filter:saturate(180%) blur(2px);z-index:999}
-.spinner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:42px;height:42px;border:4px solid #e5e7eb;border-top-color:#111827;border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+@media (max-width:480px){.row-2{grid-template-columns:1fr}}
+.note{font-size:12px;color:#374151;margin-top:8px}
+.iteminfo{font-size:12px;color:#374151;margin-top:6px;white-space:pre-wrap}
+
+/* --- breakdown table --- */
+.tbl { width:100%; border-collapse:collapse; margin-top:8px; font-size:13px }
+.tbl th, .tbl td { border:1px solid #e5e7eb; padding:6px 8px; vertical-align:top }
+.tbl th { background:#f9fafb; text-align:left; white-space:nowrap }
+.toggle { margin-top:10px }
+
+/* ==== Loading overlay ==== */
+.loading {
+  position: fixed; inset: 0; display: none; place-items: center;
+  background: rgba(255,255,255,.75); backdrop-filter: blur(1px); z-index: 9999;
+}
+.loading.show { display: grid; }
+.spinner {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 4px solid #e5e7eb; border-top-color: #111827;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 .loading-msg { margin-top: 10px; color:#374151; font-size:14px; text-align:center }
 </style>
 </head>
@@ -50,373 +69,460 @@ button:disabled{opacity:.5;cursor:not-allowed}
         <label>ご担当者様</label>
         <input id="salesperson" placeholder="入力してください">
       </div>
+
       <div>
-        <label>お客様名</label>
-        <input id="customer" placeholder="入力してください">
-      </div>
-    </div>
-    <div class="stack" style="margin-top:8px">
-      <div style="min-width:240px;flex:1">
-        <label>車種</label>
+        <label>車種コード（model_code）</label>
         <select id="vehicleSelect"></select>
-      </div>
-      <div class="small">または</div>
-      <div style="min-width:240px;flex:1">
-        <label>車種コード（手入力）</label>
-        <input id="vehicleManual" placeholder="例：ABC-123">
-      </div>
-    </div>
-    <div class="small" style="margin-top:6px">QRの <code>?branch=XXXX</code> パラメータで店舗は自動選択されます。</div>
-  </div>
-
-  <div class="row">
-    <div class="card">
-      <h3>レバレート・係数</h3>
-      <div class="grid-2">
-        <div>
-          <label>レバレート（円/時間）</label>
-          <input id="laborUnit" type="number" value="10000" min="0" step="100">
-        </div>
-        <div>
-          <label>車種別係数</label>
-          <input id="vehicleCoef" type="number" value="1" min="0" step="0.1">
+        <div class="small" id="vehicleHelp">選択/入力すると自動で適合情報を読み込みます。</div>
+        <div class="stack" style="margin-top:6px">
+          <button class="btn-ghost" id="manualToggleBtn" aria-pressed="false">リストにない場合は手入力に切替</button>
+          <input id="vehicleManual" placeholder="例: E13 / C28 / FE0" style="display:none">
         </div>
       </div>
 
-      <hr>
-      <h3>ティア選択</h3>
-      <div class="grid-3">
+      <!-- メインカテゴリ -->
+      <div class="row-2">
         <div>
-          <label>NAV</label>
-          <select id="navTier"></select>
+          <label>ナビゲーション</label>
+          <select id="navTier"><option value="">選択なし</option></select>
+          <div id="navInfo" class="iteminfo"></div>
         </div>
         <div>
           <label>ETC</label>
-          <select id="etcTier"></select>
+          <select id="etcTier"><option value="">選択なし</option></select>
+          <div id="etcInfo" class="iteminfo"></div>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div>
+          <label>ドライブレコーダー</label>
+          <select id="drcTier"><option value="">選択なし</option></select>
+          <div id="drcInfo" class="iteminfo"></div>
         </div>
         <div>
-          <label>DRC</label>
-          <select id="drcTier"></select>
+          <label>バックカメラ</label>
+          <select id="bcmTier"><option value="">選択なし</option></select>
+          <div id="bcmInfo" class="iteminfo"></div>
         </div>
       </div>
-      <div class="grid-2" style="margin-top:8px">
+
+      <div>
+        <label>後席モニター</label>
+        <select id="rseTier"><option value="">選択なし</option></select>
+        <div id="rseInfo" class="iteminfo"></div>
+      </div>
+
+      <!-- オプション（プルダウン） -->
+      <div class="row-2">
         <div>
-          <label>BCM（バックカメラ）</label>
-          <select id="bcmTier"></select>
+          <label>携帯充電用USBコード</label>
+          <select id="optUSB"><option value="">選択なし</option></select>
+          <div id="optUSBInfo" class="iteminfo"></div>
         </div>
         <div>
-          <label>RSE（後席モニター）</label>
-          <select id="rseTier"></select>
+          <label>HDMI入力コード</label>
+          <select id="optHDMI"><option value="">選択なし</option></select>
+          <div id="optHDMIInfo" class="iteminfo"></div>
         </div>
       </div>
-    </div>
-
-    <div class="card">
-      <h3>オプション</h3>
-
-      <div class="section">
-        <div class="checkbox">
-          <input type="checkbox" id="optUSB">
-          <label for="optUSB">延長保証</label>
-        </div>
-        <div class="stack">
-          <select id="optUSBSelect"></select>
-          <button class="btn-ghost small" id="optUSBInfoBtn">詳細</button>
-        </div>
-        <div class="small" id="optUSBInfo"></div>
+      <div>
+        <label>ottocast</label>
+        <select id="optOTTO"><option value="">選択なし</option></select>
+        <div id="optOTTOInfo" class="iteminfo"></div>
       </div>
 
-      <div class="section" style="margin-top:10px">
-        <div class="checkbox">
-          <input type="checkbox" id="optHDMI">
-          <label for="optHDMI">HDMI入力コード</label>
-        </div>
-        <div class="stack">
-          <select id="optHDMISelect"></select>
-          <button class="btn-ghost small" id="optHDMIInfoBtn">詳細</button>
-        </div>
-        <div class="small" id="optHDMIInfo"></div>
-      </div>
-
-      <div class="section" style="margin-top:10px">
-        <div class="checkbox">
-          <input type="checkbox" id="optOTTO">
-          <label for="optOTTO">OTTOCAST</label>
-        </div>
-        <div class="stack">
-          <select id="optOTTOSelect"></select>
-          <button class="btn-ghost small" id="optOTTOInfoBtn">詳細</button>
-        </div>
-        <div class="small" id="optOTTOInfo"></div>
+      <div class="stack">
+        <button id="btnQuote">見積を表示</button>
+        <div id="msg" class="err"></div>
+        <div class="small">※ 店舗はQRのbranchパラメータから自動取得します。</div>
       </div>
     </div>
   </div>
 
-  <div class="row">
-    <div class="card">
-      <h3>見積</h3>
-      <div id="lines"></div>
-      <div class="total" id="total">合計: - 円</div>
-
-      <div class="stack" style="margin-top:8px">
-        <button id="quoteBtn">見積を作成</button>
-        <button id="toggleBreakdownBtn" class="btn-ghost">詳細を表示</button>
-        <div id="msg" class="small" style="color:#b00020;margin-left:auto"></div>
-      </div>
-
-      <div id="breakdown" style="display:none;margin-top:8px">
-        <table class="table" id="breakdownTable">
-          <thead><tr id="breakdownHeader"></tr></thead>
-          <tbody id="breakdownBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>店舗メモ</h3>
-      <textarea id="memo" rows="10" style="width:100%;border:1px solid #d1d5db;border-radius:10px;padding:8px" placeholder="店舗メモ（任意）"></textarea>
-    </div>
+  <!-- 結果 -->
+  <div class="card" id="result" style="display:none">
+    <div id="lines"></div>
+    <div class="total" id="grand"></div>
+    <button id="toggleDetail" class="btn-ghost toggle" style="display:none">詳細を表示</button>
+    <div id="breakdown" style="display:none"></div>
+    <div id="notes" class="note"></div>
   </div>
 
-  <div class="loading" id="loading"><div class="spinner"></div><div class="loading-msg">通信中…</div></div>
-</div>
+  <!-- Loading overlay -->
+  <div id="loading" class="loading" aria-live="polite" aria-busy="true">
+    <div style="display:flex; flex-direction:column; align-items:center;">
+      <div class="spinner" role="progressbar" aria-label="読込中"></div>
+      <div class="loading-msg" id="loadingMsg">読込中です…</div>
+    </div>
+  </div>
 
 <script>
-/* ===== 接続情報 ===== */
-const FLOW_URL = "https://default65d7f344287e476a8e27e2ad17aaf5.f3.environment.api.powerplatform.com:443/powerautomate/...sig=qFlU...";
-const BRANCH_CODE = new URLSearchParams(location.search).get('branch');
+/* ===== 設定 ===== */
+/* ★動いていた方の URL に戻しました */
+const FLOW_URL = "https://default65d7f344287e476a8e27e2ad17aaf5.f3.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/cc92c47cc1374afcb742cad801a2de4d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qFlUmKJ42rtDOVD9jRbRy1NkE3AQTQmQMgX15viXKuA";
+const DEALER_CODE = "NISSAN_FUKUOKA";
+const params = new URLSearchParams(location.search);
+const BRANCH_CODE = (params.get('branch')||'').trim();
 
-/* ===== ユーティリティ ===== */
-const qs = s => document.querySelector(s);
-const qsa = s => Array.from(document.querySelectorAll(s));
-const showLoading = ()=> qs('#loading').style.display = 'block';
-const hideLoading = ()=> qs('#loading').style.display = 'none';
-const fmt = n => new Intl.NumberFormat('ja-JP').format(Math.round(Number(n)||0));
+/* ===== 汎用 ===== */
+const qs = id => document.getElementById(id);
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+let debounceTimer=null;
+function debounce(fn, ms=400){ return (...a)=>{ clearTimeout(debounceTimer); debounceTimer=setTimeout(()=>fn(...a), ms); }; }
 
-/* ===== ティアのセレクト描画（見た目そのまま、カテゴリ別ラベルに変更、BCMはPREMIUM非表示） ===== */
-function setSelect(el, tiers, disabled, reason){
-  if (!el) return; // null セーフ
+/* Loading overlay helpers */
+function showLoading(msg){ const l=qs('loading'); const m=qs('loadingMsg'); if(msg) m.textContent=msg; l.classList.add('show'); }
+function hideLoading(){ qs('loading').classList.remove('show'); }
 
+/* 全リクエストに dealer / branch を自動付与（x-api-keyは送らない）*/
+async function callFlow(body){
+  const base = { dealer: DEALER_CODE, branch: BRANCH_CODE || '' };
+  const res = await fetch(FLOW_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "Accept":"application/json" },
+    body: JSON.stringify({ ...base, ...body })
+  });
+  if(!res.ok){
+    const t = await res.text().catch(()=>String(res.status));
+    throw new Error(`Flow HTTP ${res.status}: ${t}`);
+  }
+  return res.json();
+}
+
+function setSelect(el, tiers, disabled, reason){ if(!el) return;
   const id = (el && el.id) || "";
-
-  // カテゴリ別ラベル
+  // Per-category labels
   const labelMaps = {
     navTier: { SIMPLE:"ディスプレイオーディオ7インチ", BASIC:"ベーシック7インチ", PREMIUM:"プレミアム9インチ" },
     etcTier: { SIMPLE:"ETC1.0", BASIC:"ETC2.0", PREMIUM:"ETC2.0ナビ連動" },
     drcTier: { SIMPLE:"フロントのみ1カメラ", BASIC:"前後2カメラ", PREMIUM:"ナビ連動前後2カメラ" },
-    bcmTier: { SIMPLE:"【アラウンドビューモニター用】ナビに映像出力", BASIC:"スタンダードバックカメラ", PREMIUM:null }, // PREMIUMは非表示
+    bcmTier: { SIMPLE:"【アラウンドビューモニター用】ナビに映像出力", BASIC:"スタンダードバックカメラ", PREMIUM:null }, // PREMIUMは出さない
     rseTier: { SIMPLE:"10.1型フリップダウンモニター", BASIC:"9型ヘッドレスト裏モニター2セット（助手席・運転席）", PREMIUM:"13.3型フリップダウンモニター" }
   };
   const defaultLabels = { SIMPLE:"シンプル", BASIC:"ベーシック", PREMIUM:"プレミアム" };
   const labels = labelMaps[id] || defaultLabels;
 
-  // 先頭行
-  el.innerHTML = `<option value="">${disabled ? `選択不可（${reason||''}）` : '選択なし'}</option>`;
+  // 初期行
+  el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
 
-  // BCM は PREMIUM を除外
+  // 特例：BCM は PREMIUM を非表示
   let list = Array.isArray(tiers) ? tiers.slice() : String(tiers||'').split(',');
-  if (id === 'bcmTier') list = list.filter(t => String(t).toUpperCase().trim() !== 'PREMIUM');
+  if(id==='bcmTier'){ list = list.filter(t => String(t).toUpperCase() !== 'PREMIUM'); }
 
-  if (!disabled) {
+  if(!disabled){
     list.forEach(t => {
       const key = String(t).toUpperCase().trim();
       const label = labels[key] ?? defaultLabels[key] ?? key;
-      if (label) el.insertAdjacentHTML('beforeend', `<option value="${key}">${label}</option>`);
+      if(label){ el.insertAdjacentHTML('beforeend', `<option value="${key}">${label}</option>`); }
     });
   }
   el.disabled = !!disabled;
+};
+  el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
+  if(!disabled){ (tiers||[]).forEach(t=> el.insertAdjacentHTML('beforeend', `<option value="${t}">${labels[t]||t}</option>`)); }
+  el.disabled = !!disabled;
 }
 
-/* ===== Flow 呼び出し ===== */
-async function callFlow(payload){
-  const res = await fetch(FLOW_URL, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  });
-  if(!res.ok) throw new Error('サーバでエラーが発生しました');
-  return await res.json();
-}
-
-/* ===== 店舗情報 ===== */
-async function loadBranchInfo(){
-  const data = await callFlow({ intent:'branchInfo', branch: BRANCH_CODE });
-  qs('#branchBadge').textContent = '店舗：' + (data?.name || '-');
-  qs('#branchContact').textContent = [data?.address, data?.tel].filter(Boolean).join(' / ');
-}
-
-/* ===== 車種一覧 ===== */
-async function loadVehicles(){
-  const data = await callFlow({ intent:'listVehicles', branch: BRANCH_CODE });
-  const sel = qs('#vehicleSelect');
-  sel.innerHTML = '<option value="">選択してください</option>';
-  (data?.items||[]).forEach(it=>{
-    sel.insertAdjacentHTML('beforeend', `<option value="${(it.code||'').toUpperCase()}">${it.name||it.code}</option>`);
-  });
-}
-
-/* ===== 現在の車種コード（見た目は以前のまま：手入力があれば優先） ===== */
-function getVehicleCode(){
-  const m = (qs('#vehicleManual')?.value || '').trim();
-  if(m) return m.toUpperCase();
-  return (qs('#vehicleSelect')?.value || '').trim().toUpperCase();
-}
-
-/* ===== 可用性（ティア & オプション） ===== */
-async function loadAvailability(){
-  const vehicle = getVehicleCode();
-  if(!vehicle){
-    ['navTier','etcTier','drcTier','bcmTier','rseTier'].forEach(id=> setSelect(qs('#'+id), [], true, '車種未選択'));
-    return;
-  }
-  const data = await callFlow({ intent:'availability', vehicle, branch: BRANCH_CODE });
-  setSelect(qs('#navTier'), data?.NAV?.tiers, data?.NAV?.disabled, data?.NAV?.reason);
-  setSelect(qs('#etcTier'), data?.ETC?.tiers, data?.ETC?.disabled, data?.ETC?.reason);
-  setSelect(qs('#drcTier'), data?.DRC?.tiers, data?.DRC?.disabled, data?.DRC?.reason);
-  setSelect(qs('#bcmTier'), data?.BCM?.tiers, data?.BCM?.disabled, data?.BCM?.reason);
-  setSelect(qs('#rseTier'), data?.RSE?.tiers, data?.RSE?.disabled, data?.RSE?.reason);
-
-  // オプションはチェック時に listOptions を取得
-  await initOptionSelect('OPT_USB',  '#optUSB',  '#optUSBSelect',  '#optUSBInfo',  '#optUSBInfoBtn');
-  await initOptionSelect('OPT_HDMI', '#optHDMI', '#optHDMISelect', '#optHDMIInfo', '#optHDMIInfoBtn');
-  await initOptionSelect('OPT_OTTOCAST', '#optOTTO', '#optOTTOSelect', '#optOTTOInfo', '#optOTTOInfoBtn');
-}
-
-/* ===== オプション：チェック → 商品名/詳細 ===== */
-async function initOptionSelect(category, chkSel, selSel, infoSel, btnSel){
-  const chk = qs(chkSel), sel = qs(selSel), info = qs(infoSel), btn = qs(btnSel);
-  sel.innerHTML = '<option value="">選択なし</option>';
-  info.textContent = '';
-  btn.onclick = async ()=>{
-    const code = sel.value;
-    if(!code) return;
-    const d = await callFlow({ intent:'getCatalogItem', category, code });
-    info.textContent = `${d?.name||''}\n${d?.detail||''}`;
-  };
-  chk.onchange = async ()=>{
-    info.textContent = '';
-    sel.innerHTML = '<option value="">選択なし</option>';
-    if(!chk.checked) return;
-    const resp = await callFlow({ intent:'listOptions', category, vehicle: getVehicleCode(), branch: BRANCH_CODE });
-    (resp?.items||[]).forEach(it=>{
-      sel.insertAdjacentHTML('beforeend', `<option value="${(it.code||'').toUpperCase()}">${it.name||it.code}</option>`);
-    });
-  };
-}
-
-/* ===== 初期化 ===== */
+/* ===== リセット関数（車種変更時に初期化） ===== */
 function resetProductSelections(){
-  ['navTier','etcTier','drcTier','bcmTier','rseTier'].forEach(id=> setSelect(qs('#'+id), [], true, '車種未選択'));
-  ['optUSBSelect','optHDMISelect','optOTTOSelect'].forEach(id=>{ const el=qs('#'+id); if(el) el.innerHTML='<option value=\"\">選択なし</option>'; });
-  ['optUSB','optHDMI','optOTTO'].forEach(id=>{ const el=qs('#'+id); if(el) el.checked=false; });
-  ['optUSBInfo','optHDMIInfo','optOTTOInfo'].forEach(id=>{ const el=qs('#'+id); if(el) el.textContent=''; });
+  ['navTier','etcTier','drcTier','bcmTier','rseTier','optUSB','optHDMI','optOTTO'].forEach(id=>{
+    const el = qs(id);
+    if(!el) return;
+    el.value = '';
+    el.innerHTML = '<option value="">選択なし</option>';
+    el.disabled = true;
+  });
+  ['navInfo','etcInfo','drcInfo','bcmInfo','rseInfo','optUSBInfo','optHDMIInfo','optOTTOInfo'].forEach(id=>{
+    const info = qs(id);
+    if(info) info.textContent = '';
+  });
+  if (typeof selectedCatalogInfo === 'object' && selectedCatalogInfo){
+    Object.keys(selectedCatalogInfo).forEach(k => selectedCatalogInfo[k] = null);
+  }
 }
 
-/* ===== 見積実行 ===== */
-qs('#quoteBtn').onclick = async (ev)=>{
-  const btn = ev.currentTarget;
+/* ===== 起動時：店舗情報表示 ===== */
+(async ()=>{
+  const badge = qs('branchBadge'); const contact = qs('branchContact');
+  if(!BRANCH_CODE){ badge.textContent = "店舗：未指定（QRのbranchが必要）"; return; }
   try{
-    qs('msg') && (qs('msg').textContent='');
-    showLoading(); btn.disabled = true;
+    showLoading("店舗情報を取得中…");
+    const info = await callFlow({ intent:"branchInfo", vehicle:"" });
+    const b = info.branch || {};
+    badge.textContent = "店舗：" + ((info.found && b.name)? b.name : BRANCH_CODE);
+    if(b.tel || b.fax){ contact.textContent = `TEL: ${b.tel||'-'} / FAX: ${b.fax||'-'}`; }
+  }catch{ badge.textContent = "店舗：取得失敗"; }
+  finally{ hideLoading(); }
+})();
 
+/* ===== 車種セレクト（04_VehicleDifficulty: field_2=code / field_1=label） ===== */
+async function initVehicleSelect(){
+  const sel = qs('vehicleSelect');
+  sel.disabled = true;
+  sel.innerHTML = '<option value="">車種を読み込み中…</option>';
+  try{
+    showLoading("車種リストを取得中…");
+    const res = await callFlow({ intent: "listVehicles" });
+    const items = Array.isArray(res.items) ? res.items : [];
+    if(items.length === 0){ sel.innerHTML = '<option value="">登録が見つかりません</option>'; sel.disabled = false; return; }
+    const list = items
+      .filter(x => (x.code||'').trim() !== '')
+      .map(x => ({ code: (x.code||'').trim().toUpperCase(), label: (x.label||'').trim() }))
+      .sort((a,b)=> a.label.localeCompare(b.label,'ja'));
+    sel.innerHTML = '<option value="">車種を選択</option>';
+    for(const it of list){ sel.insertAdjacentHTML('beforeend', `<option value="${it.code}">${it.label?`${it.label} (${it.code})`:it.code}</option>`); }
+  }catch(e){
+    sel.innerHTML = '<option value="">読み込みに失敗しました（手入力に切替可）</option>';
+    qs('msg').textContent = '車種リストの取得に失敗：' + e.message;
+  }finally{ sel.disabled = false; hideLoading(); }
+}
+initVehicleSelect();
+
+/* ===== 手入力モード切替 ===== */
+qs('manualToggleBtn').addEventListener('click', (e)=>{
+  const btn = e.currentTarget, pressed = btn.getAttribute('aria-pressed')==='true';
+  const manual = qs('vehicleManual'); const sel = qs('vehicleSelect');
+  if(pressed){ btn.setAttribute('aria-pressed','false'); btn.textContent='リストにない場合は手入力に切替'; manual.style.display='none'; manual.value=''; sel.disabled=false; }
+  else{ btn.setAttribute('aria-pressed','true'); btn.textContent='手入力をやめてリストに戻す'; manual.style.display=''; sel.disabled=true; manual.focus(); }
+  resetProductSelections();
+  triggerAvailability();
+});
+function getVehicleCode(){ return (qs('manualToggleBtn').getAttribute('aria-pressed')==='true' ? (qs('vehicleManual').value||'') : (qs('vehicleSelect').value||'')).trim().toUpperCase(); }
+
+/* ===== 可用性の自動読み込み（スピナー付き） ===== */
+async function loadAvailability(){
+  qs('msg').textContent = '';
+  const vehicle = getVehicleCode();
+  if(!BRANCH_CODE || !vehicle){ return; }
+  try{
+    showLoading("可用性を取得中…");
+    const payload = { dealer: DEALER_CODE, branch: BRANCH_CODE, vehicle, intent: "availability" };
+    const data = await callFlow(payload);
+    const av = data.availability || {};
+    setSelect(qs('navTier'), (av.NAV?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.NAV?.allowed===false, av.NAV?.reason);
+    setSelect(qs('etcTier'), (av.ETC?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.ETC?.allowed===false, av.ETC?.reason);
+    setSelect(qs('drcTier'), (av.DRC?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.DRC?.allowed===false, av.DRC?.reason);
+    setSelect(qs('bcmTier'), (av.BACKCAM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BACKCAM?.allowed===false, av.BACKCAM?.reason);
+    setSelect(qs('rseTier'), (av.RSE?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.RSE?.allowed===false, av.RSE?.reason);
+
+    // オプション一覧（02_Catalog_Main, Title=OPT_*）
+    await initOptionSelect('OPT_USB','optUSB');
+    await initOptionSelect('OPT_HDMI','optHDMI');
+    await initOptionSelect('OPT_OTTOCAST','optOTTO');
+
+  }catch(e){
+    qs('msg').textContent = '可用性の取得に失敗しました: ' + e.message;
+  }finally{
+    hideLoading();
+  }
+}
+const triggerAvailability = debounce(loadAvailability, 350);
+qs('vehicleSelect').addEventListener('change', ()=>{ resetProductSelections(); triggerAvailability(); });
+qs('vehicleManual').addEventListener('input', ()=>{ resetProductSelections(); triggerAvailability(); });
+
+/* ===== 02_Catalog_Main：商品名(field_3)/詳細(field_4) 取得＆表示 ===== */
+async function fetchCatalogItem(category, { grade=null, code=null }){
+  const vehicle = getVehicleCode();
+  const payload = { intent:"getCatalogItem", category, grade, code, vehicle };
+  try{ return await callFlow(payload); } catch(e){ return {}; }
+}
+function renderItemInfo(elId, info){
+  const el = qs(elId);
+  if(!info || (!info.name && !info.detail)){ el.textContent = ""; return; }
+  const name = info.name || "";
+  const detail = info.detail || "";
+  el.textContent = `商品名：${name}\n${detail ? `詳細：${detail}` : ''}`;
+}
+
+/* メインカテゴリ：選択（grade） → 商品名/詳細 */
+async function onMainSelect(category, selectId, infoId){
+  const grade = (qs(selectId).value||'').trim();
+  if(!grade){ renderItemInfo(infoId, null); selectedCatalogInfo[category]=null; return; }
+  try{
+    showLoading("商品情報を取得中…");
+    const info = await fetchCatalogItem(category, { grade });
+    renderItemInfo(infoId, info);
+    selectedCatalogInfo[category] = { category, grade, ...info };
+  } finally { hideLoading(); }
+}
+
+/* オプション：一覧 → セレクト生成（値は code） */
+async function initOptionSelect(optCategory, selectId){
+  const sel = qs(selectId);
+  sel.disabled = true;
+  sel.innerHTML = '<option value="">読み込み中…</option>';
+  try{
+    const res = await callFlow({ intent:"listOptions", category: optCategory });
+    const items = Array.isArray(res.items) ? res.items : [];
+    if(items.length === 0){ sel.innerHTML = '<option value="">選択なし</option>'; sel.disabled=false; return; }
+    sel.innerHTML = '<option value="">選択なし</option>';
+    for(const it of items){
+      const code = (it.code||'').trim();
+      const name = (it.name||'').trim();
+      sel.insertAdjacentHTML('beforeend', `<option value="${code}">${name||code}</option>`);
+    }
+    sel.disabled = false;
+  }catch(e){
+    sel.innerHTML = '<option value="">読み込み失敗</option>';
+  }
+}
+
+/* オプション選択時：code → 商品名/詳細 */
+async function onOptionSelect(category, selectId, infoId){
+  const code = (qs(selectId).value||'').trim();
+  if(!code){ renderItemInfo(infoId, null); selectedCatalogInfo[category]=null; return; }
+  try{
+    showLoading("商品情報を取得中…");
+    const info = await fetchCatalogItem(category, { code });
+    renderItemInfo(infoId, info);
+    selectedCatalogInfo[category] = { category, code, ...info };
+  } finally { hideLoading(); }
+}
+
+/* 選択されたカタログ情報を保持（見積POSTに同梱） */
+const selectedCatalogInfo = {
+  NAV:null, ETC:null, DRC:null, BACKCAM:null, RSE:null,
+  OPT_USB:null, OPT_HDMI:null, OPT_OTTOCAST:null
+};
+
+/* イベント紐付け */
+qs('navTier').addEventListener('change', ()=> onMainSelect('NAV','navTier','navInfo'));
+qs('etcTier').addEventListener('change', ()=> onMainSelect('ETC','etcTier','etcInfo'));
+qs('drcTier').addEventListener('change', ()=> onMainSelect('DRC','drcTier','drcInfo'));
+qs('bcmTier').addEventListener('change', ()=> onMainSelect('BACKCAM','bcmTier','bcmInfo'));
+qs('rseTier').addEventListener('change', ()=> onMainSelect('RSE','rseTier','rseInfo'));
+
+qs('optUSB').addEventListener('change', ()=> onOptionSelect('OPT_USB','optUSB','optUSBInfo'));
+qs('optHDMI').addEventListener('change', ()=> onOptionSelect('OPT_HDMI','optHDMI','optHDMIInfo'));
+qs('optOTTO').addEventListener('change', ()=> onOptionSelect('OPT_OTTOCAST','optOTTO','optOTTOInfo'));
+
+/* ===== 見積（POST → 結果表示＋内訳） ===== */
+qs('btnQuote').onclick = async ()=>{
+  const btn = qs('btnQuote');
+  qs('msg').textContent = '';
+  btn.disabled = true; showLoading("見積を計算中…");
+  try{
+    if(!BRANCH_CODE) throw new Error("店舗情報（branch）がQRに含まれていません。正しいQRからアクセスしてください。");
+    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
+
+    const selTo10 = v => v && v.length ? "1" : "0";
     const payload = {
-      intent:'quote',
-      branch: BRANCH_CODE,
-      vehicle: getVehicleCode(),
-      labor_unit: Number(qs('#laborUnit').value||0),
-      coef: Number(qs('#vehicleCoef').value||1),
-      nav_grade: qs('#navTier').value,
-      etc_grade: qs('#etcTier').value,
-      drc_grade: qs('#drcTier').value,
-      bcm_grade: qs('#bcmTier').value,
-      rse_grade: qs('#rseTier').value,
-      opt_usb: qs('#optUSB').checked ? qs('#optUSBSelect').value : '',
-      opt_hdmi: qs('#optHDMI').checked ? qs('#optHDMISelect').value : '',
-      opt_otto: qs('#optOTTO').checked ? qs('#optOTTOSelect').value : ''
+      intent: "quote",
+      salesperson: qs('salesperson').value.trim(),
+      vehicle,
+      nav_selected: selTo10(qs('navTier').value),
+      etc_selected: selTo10(qs('etcTier').value),
+      drc_selected: selTo10(qs('drcTier').value),
+      bcm_selected: selTo10(qs('bcmTier').value),
+      rse_selected: selTo10(qs('rseTier').value),
+      nav_grade: qs('navTier').value || null,
+      etc_grade: qs('etcTier').value || null,
+      drc_grade: qs('drcTier').value || null,
+      bcm_grade: qs('bcmTier').value || null,
+      rse_grade: qs('rseTier').value || null,
+      opt_usb_code: (qs('optUSB').value||null),
+      opt_hdmi_code: (qs('optHDMI').value||null),
+      opt_otto_code: (qs('optOTTO').value||null),
+      selectedItems: Object.values(selectedCatalogInfo).filter(Boolean)
     };
 
-    const res = await callFlow(payload);
+    const data = await callFlow(payload);
 
-    /* ライン表示 */
-    const linesDiv = qs('#lines');
-    const rows = res?.display?.lines || [];
-    linesDiv.innerHTML = '';
-    rows.forEach(row=>{
-      const left = [row.name, row.detail].filter(Boolean).join(' ／ ');
-      const right = fmt(row.amount ?? row.price ?? row.unit ?? 0) + ' 円';
-      const el = document.createElement('div');
-      el.className='line';
-      el.innerHTML = `<div>${left}</div><div>${right}</div>`;
-      linesDiv.appendChild(el);
-    });
-    qs('#total').textContent = '合計: ' + fmt(res?.display?.total ?? 0) + ' 円';
+    if(data.validation?.errors?.length){
+      qs('result').style.display='none';
+      qs('msg').textContent = data.validation.errors.join(' / ');
+      return;
+    }
 
-    /* 内訳（列は可変） */
-    const header = qs('#breakdownHeader');
-    const body = qs('#breakdownBody');
-    header.innerHTML=''; body.innerHTML='';
-    const has = {
-      part: rows.some(r=> typeof r.part === 'number'),
-      labor: rows.some(r=> typeof r.labor === 'number'),
-      coef: rows.some(r=> r.coef !== undefined && r.coef !== null),
-      code: rows.some(r=> r.code),
-      grade: rows.some(r=> r.grade)
-    };
-    const cols = [{key:'name',label:'品目'}];
-    if(has.part) cols.push({key:'part',label:'部品'});
-    if(has.labor) cols.push({key:'labor',label:'工賃'});
-    if(has.coef) cols.push({key:'coef',label:'係数'});
-    if(has.code) cols.push({key:'code',label:'コード'});
-    if(has.grade) cols.push({key:'grade',label:'グレード'});
-    cols.push({key:'amount',label:'金額'});
-
-    header.innerHTML = cols.map(c=>`<th>${c.label}</th>`).join('');
-    rows.forEach(r=>{
-      const tds = cols.map(c=>{
-        let v = r[c.key];
-        if(c.key==='amount') v = r.amount ?? r.price ?? r.unit ?? 0;
-        if(['part','labor','amount'].includes(c.key)) v = fmt(v||0);
-        return `<td>${(v??'')}</td>`;
-      }).join('');
-      body.insertAdjacentHTML('beforeend', `<tr>${tds}</tr>`);
+    const linesEl = qs('lines'); linesEl.innerHTML = '';
+    (data.display?.lines||[]).forEach(l=>{
+      const name = l.name || '';
+      const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
+      linesEl.insertAdjacentHTML('beforeend',
+        `<div class="line"><div>${name}${detail}</div><div>¥${Number(l.price||0).toLocaleString()}</div></div>`
+      );
     });
 
-    /* 詳細トグル */
-    qs('#toggleBreakdownBtn').onclick = ()=>{
-      const bd = qs('#breakdown');
-      const btnT = qs('#toggleBreakdownBtn');
+    qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString();
+    qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
+    qs('result').style.display = 'block';
+    await sleep(50);
+    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+
+    /* --- 詳細内訳の構築＆トグル --- */
+    const bd = qs('breakdown');
+    const btnT = qs('toggleDetail');
+    const fmt = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
+    const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k);
+    const t = data.totals || {};
+    const ctx = data.context || {};
+
+    const rows = (data.display?.lines || []).map(l=>{
+      const name = l.name || '';
+      const detail = l.detail || '';
+      const code = l.code || '';
+      const grade = l.grade || '';
+      const part = has(l,'part') ? `¥${fmt(l.part)}` : '-';
+      const labor= has(l,'labor')? `¥${fmt(l.labor)}`: '-';
+      const coef = has(l,'coef') ? String(l.coef) : '-';
+      const price= `¥${fmt(l.price)}`;
+      return `
+        <tr>
+          <td>${name}${code?`<div class="small">コード: ${code}</div>`:''}${grade?`<div class="small">グレード: ${grade}</div>`:''}${detail?`<div class="small" style="white-space:pre-wrap">${detail}</div>`:''}</td>
+          <td style="text-align:right">${part}</td>
+          <td style="text-align:right">${labor}</td>
+          <td style="text-align:right">${coef}</td>
+          <td style="text-align:right"><b>${price}</b></td>
+        </tr>
+      `;
+    }).join('');
+
+    const summaryRows = [
+      has(t,'subtotal')        ? `<tr><th>小計（税抜）</th><td style="text-align:right">¥${fmt(t.subtotal)}</td></tr>` : '',
+      has(t,'roundUnit')       ? `<tr><th>丸め単位</th><td style="text-align:right">${t.roundUnit}</td></tr>` : '',
+      has(t,'subtotalRounded') ? `<tr><th>小計（丸め後・税抜）</th><td style="text-align:right">¥${fmt(t.subtotalRounded)}</td></tr>` : '',
+      has(t,'taxRate')         ? `<tr><th>消費税率</th><td style="text-align:right">${t.taxRate}%</td></tr>` : '',
+      has(t,'taxInt')          ? `<tr><th>消費税額</th><td style="text-align:right">¥${fmt(t.taxInt)}</td></tr>` : '',
+      has(t,'grand')           ? `<tr><th>合計（税込）</th><td style="text-align:right"><b>¥${fmt(t.grand)}</b></td></tr>` : ''
+    ].filter(Boolean).join('');
+
+    const headerKV = [
+      ctx.dealer  ? `<div>ディーラー：${ctx.dealer}</div>` : '',
+      ctx.branch  ? `<div>店舗：${ctx.branch}</div>` : '',
+      ctx.vehicle ? `<div>車種コード：${ctx.vehicle}</div>` : '',
+      (qs('salesperson').value||'') ? `<div>担当：${qs('salesperson').value}</div>` : ''
+    ].filter(Boolean).join('');
+
+    bd.innerHTML = `
+      ${headerKV ? `<div class="small" style="margin-bottom:8px;color:#374151">${headerKV}</div>` : ''}
+
+      <div style="font-weight:700;margin:6px 0 4px">ライン明細</div>
+      <table class="tbl">
+        <thead><tr><th>項目</th><th style="text-align:right">部品</th><th style="text-align:right">工賃</th><th style="text-align:right">係数</th><th style="text-align:right">計</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="5" class="small">明細情報が取得できませんでした</td></tr>`}</tbody>
+      </table>
+
+      <div style="font-weight:700;margin:12px 0 4px">サマリ</div>
+      <table class="tbl"><tbody>${summaryRows}</tbody></table>
+    `;
+
+    btnT.style.display = 'inline-block';
+    bd.style.display = 'none';
+    btnT.textContent = '詳細を表示';
+    btnT.onclick = ()=>{
       const isOpen = bd.style.display !== 'none';
       bd.style.display = isOpen ? 'none' : 'block';
       btnT.textContent = isOpen ? '詳細を表示' : '詳細を閉じる';
     };
+    /* --- ここまで内訳 --- */
 
   }catch(e){
-    qs('msg') && (qs('msg').textContent = e.message || '処理に失敗しました');
+    qs('msg').textContent = e.message || '処理に失敗しました';
   }finally{
     hideLoading(); btn.disabled = false;
   }
 };
-
-/* ===== 起動時処理 ===== */
-(async ()=>{
-  try{
-    showLoading();
-    await loadBranchInfo();
-    await loadVehicles();
-    resetProductSelections();
-
-    // 変更時に再計算
-    qs('#vehicleSelect').addEventListener('change', ()=>{ resetProductSelections(); loadAvailability(); });
-    const _vm = qs('vehicleManual'); // 手入力欄が無い環境でも落ちない
-    if(_vm){ _vm.addEventListener('input', ()=>{ resetProductSelections(); loadAvailability(); }); }
-
-    await loadAvailability();
-  }catch(e){
-    qs('msg') && (qs('msg').textContent = e.message || '初期化に失敗しました');
-  }finally{
-    hideLoading();
-  }
-})();
 </script>
 </body>
 </html>
