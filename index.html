@@ -128,7 +128,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <div class="stack">
         <button id="btnQuote">見積を表示</button>
         <div id="msg" class="err"></div>
-        <div class="small">※ 店舗情報は自動取得します。</div>
+        <div class="small">※ 店舗はQRのbranchパラメータから自動取得します。</div>
       </div>
     </div>
   </div>
@@ -276,7 +276,7 @@ async function loadAvailability(){
     return;
   }
   try{
-    showLoading("情報取得中…");
+    showLoading("可用性を取得中…");
     const resp = await callFlow({ intent: "availability", vehicle });
     const av = resp.availability || {};
 
@@ -297,7 +297,7 @@ async function loadAvailability(){
     await initOptionSelect('OPT_OTTOCAST', 'optOTTO', 'optOTTOInfo');
 
   }catch(e){
-    qs('msg').textContent = '情報の取得に失敗しました: ' + e.message;
+    qs('msg').textContent = '可用性の取得に失敗しました: ' + e.message;
   }finally{
     hideLoading();
   }
@@ -428,7 +428,7 @@ qs('btnQuote').onclick = async ()=>{
     qs('msg').textContent = '';
     btn.disabled = true; showLoading("見積を計算中…");
 
-    if(!BRANCH_CODE) throw new Error("店舗情報がQRに含まれていません。正しいQRからアクセスしてください。");
+    if(!BRANCH_CODE) throw new Error("店舗情報（branch）がQRに含まれていません。正しいQRからアクセスしてください。");
     const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
 
     const payload = {
@@ -506,7 +506,7 @@ qs('btnQuote').onclick = async ()=>{
 /* ===== QR branch 表示 ===== */
 (function initBranchFromQR(){
   const badge = qs('branchBadge');
-  if(!BRANCH_CODE){ badge.textContent = '店舗：未指定（店舗コードが必要）'; }
+  if(!BRANCH_CODE){ badge.textContent = '店舗：未指定（QRのbranchが必要）'; }
 })();
 </script>
 </body>
