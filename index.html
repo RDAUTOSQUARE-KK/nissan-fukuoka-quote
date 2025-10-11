@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>【日産福岡販売様】簡易見積ツール（完全版）</title>
+<title>【日産福岡販売様】簡易見積ツール</title>
 <style>
 :root{--pad:14px;--gap:12px;--radius:14px;--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#ffffff}
 html,body{background:#fafafa;color:var(--fg)}
@@ -148,7 +148,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <div class="stack">
         <button id="btnQuote">見積を表示</button>
         <div id="msg" class="err"></div>
-        <div class="small">※ 店舗はQRのbranchパラメータから自動取得します。</div>
+        <div class="small">※ 店舗情報は自動取得します。</div>
       </div>
     </div>
   </div>
@@ -258,7 +258,7 @@ function resetProductSelections(){
 /* ===== 起動時：店舗情報表示 ===== */
 (async ()=>{
   const badge = qs('branchBadge'); const contact = qs('branchContact');
-  if(!BRANCH_CODE){ badge.textContent = "店舗：未指定（QRのbranchが必要）"; return; }
+  if(!BRANCH_CODE){ badge.textContent = "店舗：未指定（コード無）"; return; }
   try{
     showLoading("店舗情報を取得中…");
     const info = await callFlow({ intent:"branchInfo", vehicle:"" });
@@ -309,7 +309,7 @@ async function loadAvailability(){
   const vehicle = getVehicleCode();
   if(!BRANCH_CODE || !vehicle){ return; }
   try{
-    showLoading("可用性を取得中…");
+    showLoading("情報を取得中…");
     const payload = { dealer: DEALER_CODE, branch: BRANCH_CODE, vehicle, intent: "availability" };
     const data = await callFlow(payload);
     const av = data.availability || {};
@@ -319,12 +319,12 @@ async function loadAvailability(){
     setSelect(qs('bcmTier'), (av.BACKCAM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BACKCAM?.allowed===false, av.BACKCAM?.reason);
     setSelect(qs('rseTier'), (av.RSE?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.RSE?.allowed===false, av.RSE?.reason);
 
-    await initOptionSelect('OPT_USB','optUSB');
-    await initOptionSelect('OPT_HDMI','optHDMI');
-    await initOptionSelect('OPT_OTTOCAST','optOTTO');
+await initOptionSelect('OPT_USB',      'optUSB',  'optUSBInfo');
+await initOptionSelect('OPT_HDMI',     'optHDMI', 'optHDMIInfo');
+await initOptionSelect('OPT_OTTOCAST', 'optOTTO', 'optOTTOInfo');
 
   }catch(e){
-    qs('msg').textContent = '可用性の取得に失敗しました: ' + e.message;
+    qs('msg').textContent = '情報取得に失敗しました: ' + e.message;
   }finally{
     hideLoading();
   }
@@ -452,7 +452,7 @@ qs('btnQuote').onclick = async ()=>{
   qs('msg').textContent = '';
   btn.disabled = true; showLoading("見積を計算中…");
   try{
-    if(!BRANCH_CODE) throw new Error("店舗情報（branch）がQRに含まれていません。正しいQRからアクセスしてください。");
+    if(!BRANCH_CODE) throw new Error("店舗情報がQRに含まれていません。正しいQRからアクセスしてください。");
     const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
 
     const selTo10 = v => v && v.length ? "1" : "0";
@@ -548,7 +548,7 @@ qs('btnQuote').onclick = async ()=>{
     ].filter(Boolean).join('');
 
     bd.innerHTML = `
-      <div style="font-weight:700;margin:6px 0 4px">ライン明細</div>
+      <div style="font-weight:700;margin:6px 0 4px">明細</div>
       <table class="tbl">
         <thead>${headHtml}</thead>
         <tbody>${rows || `<tr><td colspan="${headers.length}" class="small">明細情報が取得できませんでした</td></tr>`}</tbody>
@@ -576,7 +576,7 @@ qs('btnQuote').onclick = async ()=>{
 /* ===== QR branch 表示 ===== */
 (function initBranchFromQR(){
   const badge = qs('branchBadge');
-  if(!BRANCH_CODE){ badge.textContent = '店舗：未指定（QRのbranchが必要）'; }
+  if(!BRANCH_CODE){ badge.textContent = '店舗：未指定（店舗コードなし）'; }
 })();
 
 /* ===== エクスポートボタン ===== */
