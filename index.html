@@ -239,13 +239,23 @@ function setSelect(el, tiers, disabled, reason){
 
 /* ===== リセット（車種変更時） ===== */
 function resetProductSelections(){
-  ['navTier','etcTier','drcTier','bcmTier','rseTier','optUSB','optHDMI','optOTTO'].forEach(id=>{
-    const el = qs(id);
-    if(!el) return;
-    el.value = '';
-    el.innerHTML = '<option value="">選択なし</option>';
-    el.disabled = true;
-  });
+['navTier','etcTier','drcTier','bcmTier','rseTier'].forEach(id=>{
+  const el = qs(id);
+  if(!el) return;
+  el.value = '';
+  el.innerHTML = '<option value="">選択なし</option>';
+  el.disabled = true;  // メインカテゴリは従来通り disable
+});
+
+// ★ OPT は disable にしない（中身だけクリア）
+['optUSB','optHDMI','optOTTO'].forEach(id=>{
+  const el = qs(id);
+  if(!el) return;
+  el.value = '';
+  el.innerHTML = '<option value="">選択なし</option>';
+  // el.disabled は触らない
+});
+
   ['navInfo','etcInfo','drcInfo','bcmInfo','rseInfo','optUSBInfo','optHDMIInfo','optOTTOInfo'].forEach(id=>{
     const info = qs(id);
     if(info) info.textContent = '';
@@ -316,7 +326,7 @@ async function loadAvailability(){
     setSelect(qs('navTier'), (av.NAV?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.NAV?.allowed===false, av.NAV?.reason);
     setSelect(qs('etcTier'), (av.ETC?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.ETC?.allowed===false, av.ETC?.reason);
     setSelect(qs('drcTier'), (av.DRC?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.DRC?.allowed===false, av.DRC?.reason);
-    setSelect(qs('bcmTier'), (av.BACKCAM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BACKCAM?.allowed===false, av.BACKCAM?.reason);
+    setSelect(qs('bcmTier'), (av.BCM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BCM?.allowed===false, av.BACKCAM?.reason);
     setSelect(qs('rseTier'), (av.RSE?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.RSE?.allowed===false, av.RSE?.reason);
 
 await initOptionSelect('OPT_USB',      'optUSB',  'optUSBInfo');
@@ -362,21 +372,31 @@ async function onMainSelect(category, selectId, infoId){
 /* オプション一覧（OPT_*） */
 async function initOptionSelect(optCategory, selectId){
   const sel = qs(selectId);
+  if(!sel) return;
+
   sel.disabled = true;
   sel.innerHTML = '<option value="">読み込み中…</option>';
   try{
-    const res = await callFlow({ intent:"listOptions", category: optCategory });
-    const items = Array.isArray(res.items) ? res.items : [];
-    if(items.length === 0){ sel.innerHTML = '<option value="">選択なし</option>'; sel.disabled=false; return; }
+    // ★ 車種と店舗を渡す（Flow が車種依存で絞る前提でも空にならない）
+    const res = await callFlow({
+      intent: "listOptions",
+      category: optCategory,
+      vehicle: getVehicleCode(),
+      branch: BRANCH_CODE
+    });
+
+    const items = Array.isArray(res?.items) ? res.items : [];
     sel.innerHTML = '<option value="">選択なし</option>';
-    for(const it of items){
+    for (const it of items){
       const code = (it.code||'').trim();
-      const name = (it.name||'').trim();
-      sel.insertAdjacentHTML('beforeend', `<option value="${code}">${name||code}</option>`);
+      const name = (it.name||'').trim() || code;
+      if (code) sel.insertAdjacentHTML('beforeend', `<option value="${code}">${name}</option>`);
     }
-    sel.disabled = false;
   }catch(e){
     sel.innerHTML = '<option value="">読み込み失敗</option>';
+  }finally{
+    // ★ 失敗時でも確実に再度選択できるようにする
+    sel.disabled = false;
   }
 }
 
