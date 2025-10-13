@@ -385,24 +385,35 @@ async function initOptionSelect(category, selectId, infoId){
       branch: (typeof BRANCH_CODE !== 'undefined' ? BRANCH_CODE : undefined)
     });
 
-    // ★ res.items / res.body のどちらでも拾う
+    // ★ 構造が複雑な場合に対応するため、空配列を確実に取得
     const raw = Array.isArray(resp?.items) ? resp.items
               : Array.isArray(resp?.body)  ? resp.body
               : [];
 
     sel.innerHTML = '<option value="">選択なし</option>';
 
-    // ★ code が無い場合は name/detail 等を value にフォールバック
+    // ★ 修正後のロジック: codeがない場合でも、nameやdetailを確実にvalueとして利用する
     for(const it of raw){
+      // 1. まず Code/ID を探す（値として優先）
       const code = String(
-        it.code ?? it.Code ?? it.id ?? it.ID ?? it.name ?? it.detail ?? ''
+        it.code ?? it.Code ?? it.id ?? it.ID ?? ''
       ).trim();
-      const label = String(
-        it.name ?? it.Name ?? it.detail ?? it.Detail ?? code
+      
+      // 2. 次に Name/Detail を探す（ラベルとして優先）
+      const name = String(
+        it.name ?? it.Name ?? it.detail ?? it.Detail ?? ''
       ).trim();
 
-      if (!code && !label) continue;             // 両方空ならスキップ
-      const value = code || label;               // ★ 値は必ず埋める
+      // 3. 値 (value) を確定: Codeがあればそれを使用。なければNameを使用。
+      const value = code || name;
+      
+      // 4. ラベル (text) を確定: Nameがあればそれを使用。なければCodeを使用。
+      const label = name || code;
+
+      // 値もラベルも空の場合はスキップ
+      if (!value && !label) continue;
+      
+      // 最終的な value は必ず value を使用、表示テキストは label を使用
       sel.insertAdjacentHTML('beforeend', `<option value="${value}">${label}</option>`);
     }
   }catch(e){
@@ -410,7 +421,6 @@ async function initOptionSelect(category, selectId, infoId){
   }finally{
     sel.disabled = false; // ★ 失敗時でも再操作できるようにする
   }
-  // ★ ここにあった sel.onchange の設定は削除しました（末尾の addEventListener を使用するため）
 }
 
 /* オプション選択時：code → 商品名/詳細 (修正版) */
