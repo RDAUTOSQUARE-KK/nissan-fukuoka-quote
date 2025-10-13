@@ -370,34 +370,72 @@ async function onMainSelect(category, selectId, infoId){
 }
 
 /* オプション一覧（OPT_*） */
-async function initOptionSelect(optCategory, selectId){
-  const sel = qs(selectId);
+async function initOptionSelect(category, selectId, infoId){
+  const sel  = document.getElementById(selectId);
+  const info = document.getElementById(infoId);
   if(!sel) return;
 
+  // 初期化
   sel.disabled = true;
   sel.innerHTML = '<option value="">読み込み中…</option>';
+  info && (info.textContent = '');
+
   try{
-    // ★ 車種と店舗を渡す（Flow が車種依存で絞る前提でも空にならない）
-    const res = await callFlow({
-      intent: "listOptions",
-      category: optCategory,
-      vehicle: getVehicleCode(),
-      branch: BRANCH_CODE
+    // ★ vehicle / branch を渡す（Flow 側が条件で絞っても空にならない）
+    const resp = await callFlow({
+      intent: 'listOptions',
+      category,
+      vehicle: (typeof getVehicleCode === 'function' ? getVehicleCode() : undefined),
+      branch: (typeof BRANCH_CODE !== 'undefined' ? BRANCH_CODE : undefined)
     });
 
-    const items = Array.isArray(res?.items) ? res.items : [];
+    // ★ res.items / res.body のどちらでも拾う
+    const raw = Array.isArray(resp?.items) ? resp.items
+              : Array.isArray(resp?.body)  ? resp.body
+              : [];
+
     sel.innerHTML = '<option value="">選択なし</option>';
-    for (const it of items){
-      const code = (it.code||'').trim();
-      const name = (it.name||'').trim() || code;
-      if (code) sel.insertAdjacentHTML('beforeend', `<option value="${code}">${name}</option>`);
+
+    // ★ code が無い場合は name/detail 等を value にフォールバック
+    for(const it of raw){
+      const code = String(
+        it.code ?? it.Code ?? it.id ?? it.ID ?? it.name ?? it.detail ?? ''
+      ).trim();
+      const label = String(
+        it.name ?? it.Name ?? it.detail ?? it.Detail ?? code
+      ).trim();
+
+      if (!code && !label) continue;             // 両方空ならスキップ
+      const value = code || label;               // ★ 値は必ず埋める
+      sel.insertAdjacentHTML('beforeend', `<option value="${value}">${label}</option>`);
     }
   }catch(e){
     sel.innerHTML = '<option value="">読み込み失敗</option>';
   }finally{
-    // ★ 失敗時でも確実に再度選択できるようにする
-    sel.disabled = false;
+    sel.disabled = false; // ★ 失敗時でも再操作できるようにする
   }
+
+  // 選択で詳細表示（code が無い環境でも動かす）
+  sel.onchange = async ()=>{
+    if (!info) return;
+    info.textContent = '';
+    const value = (sel.value||'').trim();
+    if(!value) return;
+
+    // ★ code が無い環境向けに、name としても使える値を同送
+    const d = await callFlow({
+      intent:'getCatalogItem',
+      category,
+      code: value,
+      name: sel.options[sel.selectedIndex]?.text || value,
+      vehicle: (typeof getVehicleCode === 'function' ? getVehicleCode() : undefined),
+      branch: (typeof BRANCH_CODE !== 'undefined' ? BRANCH_CODE : undefined)
+    });
+
+    const name = d?.name || d?.field_3 || d?.Name || '';
+    const detail = d?.detail || d?.field_4 || d?.Detail || '';
+    info.textContent = [name?`商品名：${name}`:'', detail?`詳細：${detail}`:''].filter(Boolean).join('\n');
+  };
 }
 
 /* オプション選択時：code → 商品名/詳細 */
