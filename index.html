@@ -322,7 +322,7 @@ async function loadAvailability(){
     setSelect(qs('navTier'), (av.NAV?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.NAV?.allowed===false, av.NAV?.reason);
     setSelect(qs('etcTier'), (av.ETC?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.ETC?.allowed===false, av.ETC?.reason);
     setSelect(qs('drcTier'), (av.DRC?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.DRC?.allowed===false, av.DRC?.reason);
-    setSelect(qs('bcmTier'), (av.BCM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BCM?.allowed===false, av.BACKCAM?.reason);
+    setSelect(qs('bcmTier'), (av.BCM?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.BCM?.allowed===false, av.BCM?.reason);
     setSelect(qs('rseTier'), (av.RSE?.allowedTiers||"SIMPLE,BASIC,PREMIUM").split(','), av.RSE?.allowed===false, av.RSE?.reason);
 
 await initOptionSelect('OPT_USB',      'optUSB',  'optUSBInfo');
@@ -458,7 +458,7 @@ async function onOptionSelect(category, selectId, infoId){
 
 /* 選択されたカタログ情報（見積POSTに同梱） */
 const selectedCatalogInfo = {
-  NAV:null, ETC:null, DRC:null, BACKCAM:null, RSE:null,
+  NAV:null, ETC:null, DRC:null, BCM:null, RSE:null,
   OPT_USB:null, OPT_HDMI:null, OPT_OTTOCAST:null
 };
 
@@ -466,7 +466,7 @@ const selectedCatalogInfo = {
 qs('navTier').addEventListener('change', ()=> onMainSelect('NAV','navTier','navInfo'));
 qs('etcTier').addEventListener('change', ()=> onMainSelect('ETC','etcTier','etcInfo'));
 qs('drcTier').addEventListener('change', ()=> onMainSelect('DRC','drcTier','drcInfo'));
-qs('bcmTier').addEventListener('change', ()=> onMainSelect('BACKCAM','bcmTier','bcmInfo'));
+qs('bcmTier').addEventListener('change', ()=> onMainSelect('BCM','bcmTier','bcmInfo'));
 qs('rseTier').addEventListener('change', ()=> onMainSelect('RSE','rseTier','rseInfo'));
 
 // ★ オプションのイベント紐付け（onOptionSelectに処理を統合）
