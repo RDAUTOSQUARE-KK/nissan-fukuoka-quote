@@ -220,10 +220,7 @@ function setSelect(el, tiers, disabled, reason){
   el.innerHTML = `<option value="">${disabled?`選択不可（${reason||''}）`:'選択なし'}</option>`;
   let list = Array.isArray(tiers) ? tiers.slice() : String(tiers||'').split(',').filter(Boolean);
 
-  // BCMはPREMIUMを出さない
-  if(id === 'bcmTier'){ list = list.filter(t => String(t).toUpperCase().trim() !== 'PREMIUM'); }
-
-  if(!disabled){
+   if(!disabled){
     list.forEach(t=>{
       const key = String(t).toUpperCase().trim();
       const label = (labels[key] ?? defaultLabels[key] ?? key);
