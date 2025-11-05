@@ -606,7 +606,7 @@ qs('btnQuote').onclick = async ()=>{
     const summaryRows = [
       (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotal)}</td></tr>` : '',
       (t.roundUnit!=null)       ? `<tr><th>丸め単位</th><td style=\"text-align:right\">${t.roundUnit}</td></tr>` : '',
-      (t.subtotalRounded!=null) ? `<tr><th>小計（丸め後・税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotalRounded)}</td></tr>` : '',
+      (t.subtotalRounded!=null) ? `<tr><th>小計（切捨調整後・税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotalRounded)}</td></tr>` : '',
       (t.taxRate!=null)         ? `<tr><th>消費税率</th><td style=\"text-align:right\">${t.taxRate}%</td></tr>` : '',
       (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">¥${fmtN(t.taxInt)}</td></tr>` : '',
       (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>¥${fmtN(t.grand)}</b></td></tr>` : ''
