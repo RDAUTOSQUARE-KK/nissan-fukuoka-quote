@@ -510,134 +510,139 @@ function printQuote(){ window.print(); }
 
 /* ===== 見積（POST → 結果表示＋内訳） ===== */
 qs('btnQuote').onclick = async ()=>{
-  const btn = qs('btnQuote');
-  qs('msg').textContent = '';
-  btn.disabled = true; showLoading("見積を計算中…");
-  try{
-    if(!BRANCH_CODE) throw new Error("店舗情報がQRに含まれていません。正しいQRからアクセスしてください。");
-    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
+  const btn = qs('btnQuote');
+  qs('msg').textContent = '';
+  btn.disabled = true; showLoading("見積を計算中…");
 
-    const selTo10 = v => v && v.length ? "1" : "0";
-    const payload = {
-      intent: "quote",
-      salesperson: qs('salesperson').value.trim(),
-      vehicle,
-      nav_selected: selTo10(qs('navTier').value),
-      etc_selected: selTo10(qs('etcTier').value),
-      drc_selected: selTo10(qs('drcTier').value),
-      bcm_selected: selTo10(qs('bcmTier').value),
-      rse_selected: selTo10(qs('rseTier').value),
-      nav_grade: qs('navTier').value || null,
-      etc_grade: qs('etcTier').value || null,
-      drc_grade: qs('drcTier').value || null,
-      bcm_grade: qs('bcmTier').value || null,
-      rse_grade: qs('rseTier').value || null,
-      opt_usb_code: (qs('optUSB').value||null),
-      opt_hdmi_code: (qs('optHDMI').value||null),
-      opt_otto_code: (qs('optOTTO').value||null),
-      selectedItems: Object.values(selectedCatalogInfo).filter(Boolean)
-    };
+  // ⬇️⬇️⬇️ 【修正点】fmtN と has の定義を関数の冒頭に移動 ⬇️⬇️⬇️
+  const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
+  const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
+  // ⬆️⬆️⬆️ ここに移動 ⬆️⬆️⬆️
 
-    const data = await callFlow(payload);
+  try{
+    if(!BRANCH_CODE) throw new Error("店舗情報がQRに含まれていません。正しいQRからアクセスしてください。");
+    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
 
-    if(data.validation?.errors?.length){
-      qs('result').style.display='none';
-      qs('msg').textContent = data.validation.errors.join(' / ');
-      return;
-    }
+    const selTo10 = v => v && v.length ? "1" : "0";
+    const payload = {
+      intent: "quote",
+      salesperson: qs('salesperson').value.trim(),
+      vehicle,
+      nav_selected: selTo10(qs('navTier').value),
+      etc_selected: selTo10(qs('etcTier').value),
+      drc_selected: selTo10(qs('drcTier').value),
+      bcm_selected: selTo10(qs('bcmTier').value),
+      rse_selected: selTo10(qs('rseTier').value),
+      nav_grade: qs('navTier').value || null,
+      etc_grade: qs('etcTier').value || null,
+      drc_grade: qs('drcTier').value || null,
+      bcm_grade: qs('bcmTier').value || null,
+      rse_grade: qs('rseTier').value || null,
+      opt_usb_code: (qs('optUSB').value||null),
+      opt_hdmi_code: (qs('optHDMI').value||null),
+      opt_otto_code: (qs('optOTTO').value||null),
+      selectedItems: Object.values(selectedCatalogInfo).filter(Boolean)
+    };
 
-    // シンプル行
-    const linesEl = qs('lines'); linesEl.innerHTML = '';
-    (data.display?.lines||[]).forEach(l=>{
-      const name = l.name || '';
-      const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
-      linesEl.insertAdjacentHTML('beforeend',
-        `<div class="line"><div>${name}${detail}</div><div>¥${Number(l.price||l.amount||0).toLocaleString()}</div></div>`
-      );
-    });
+    const data = await callFlow(payload);
 
-    qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString();
-    qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
-    qs('result').style.display = 'block';
-    await sleep(50);
-    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
-    
-    // CSVエクスポート用に最終見積もりデータを保存
-    window.lastQuote = data;
+    if(data.validation?.errors?.length){
+      qs('result').style.display='none';
+      qs('msg').textContent = data.validation.errors.join(' / ');
+      return;
+    }
 
-    /* --- 詳細内訳（可変列ヘッダ） --- */
-    const bd = qs('breakdown');
-    const btnT = qs('toggleDetail');
-    const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
-    const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
+    // シンプル行
+    const linesEl = qs('lines'); linesEl.innerHTML = '';
+    (data.display?.lines||[]).forEach(l=>{
+      const name = l.name || '';
+      const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
+      linesEl.insertAdjacentHTML('beforeend',
+        `<div class="line"><div>${name}${detail}</div><div>¥${fmtN(l.price||l.amount||0)}</div></div>` // ★ fmtN を使用
+      );
+    });
 
-    const lines = data.display?.lines || [];
-    const colPart  = lines.some(l=>has(l,'part'));
-    const colLabor = lines.some(l=>has(l,'labor'));
-    const colCoef  = lines.some(l=>has(l,'coef'));
-    const colCode  = lines.some(l=>has(l,'code'));
-    const colGrade = lines.some(l=>has(l,'grade'));
+    qs('grand').textContent = '合計(税込) ¥' + fmtN(data.totals?.grand||0); // ★ fmtN を使用
+    qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
+    qs('result').style.display = 'block';
+    await sleep(50);
+    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+    
+    // CSVエクスポート用に最終見積もりデータを保存
+    window.lastQuote = data;
 
-    const headers = ["項目"];
-    if(colPart)  headers.push("部品");
-    if(colLabor) headers.push("工賃");
-    if(colCoef)  headers.push("係数");
-    headers.push("計");
+    /* --- 詳細内訳（可変列ヘッダ） --- */
+    const bd = qs('breakdown');
+    const btnT = qs('toggleDetail');
+    // 削除: const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
+    // 削除: const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
 
-    const headHtml = `<tr>${headers.map(h=>`<th${h!=="項目"?" style=\"text-align:right\"":""}>${h}</th>`).join('')}</tr>`;
+    const lines = data.display?.lines || [];
+    const colPart  = lines.some(l=>has(l,'part'));
+    const colLabor = lines.some(l=>has(l,'labor'));
+    const colCoef  = lines.some(l=>has(l,'coef'));
+    const colCode  = lines.some(l=>has(l,'code'));
+    const colGrade = lines.some(l=>has(l,'grade'));
 
-    const rows = lines.map(l=>{
-      const name = l.name || '';
-      const detail = l.detail || '';
-      const code = l.code || '';
-      const grade = l.grade || '';
-      const price= `¥${fmtN(l.price!=null?l.price:l.amount)}`;
-      const cells = [];
-      const left = `${name}${colCode&&code?`<div class=\"small\">コード: ${code}</div>`:''}${colGrade&&grade?`<div class=\"small\">グレード: ${grade}</div>`:''}${detail?`<div class=\"small\" style=\"white-space:pre-wrap\">${detail}</div>`:''}`;
-      cells.push(`<td>${left}</td>`);
-      if(colPart)  cells.push(`<td style=\"text-align:right\">${has(l,'part')?`¥${fmtN(l.part)}`:'-'}</td>`);
-      if(colLabor) cells.push(`<td style=\"text-align:right\">${has(l,'labor')?`¥${fmtN(l.labor)}`:'-'}</td>`);
-      if(colCoef)  cells.push(`<td style=\"text-align:right\">${has(l,'coef')?String(l.coef):'-'}</td>`);
-      cells.push(`<td style=\"text-align:right\"><b>${price}</b></td>`);
-      return `<tr>${cells.join('')}</tr>`;
-    }).join('');
+    const headers = ["項目"];
+    if(colPart)  headers.push("部品");
+    if(colLabor) headers.push("工賃");
+    if(colCoef)  headers.push("係数");
+    headers.push("計");
 
-    const t = data.totals || {};
-    const summaryRows = [
-      (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotal)}</td></tr>` : '',
-      (t.roundUnit!=null)       ? `<tr><th>丸め単位</th><td style=\"text-align:right\">${t.roundUnit}</td></tr>` : '',
-      (t.subtotalRounded!=null) ? `<tr><th>小計（切捨調整後・税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotalRounded)}</td></tr>` : '',
-      (t.taxRate!=null)         ? `<tr><th>消費税率</th><td style=\"text-align:right\">${t.taxRate}%</td></tr>` : '',
-      (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">¥${fmtN(t.taxInt)}</td></tr>` : '',
-      (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>¥${fmtN(t.grand)}</b></td></tr>` : ''
-    ].filter(Boolean).join('');
+    const headHtml = `<tr>${headers.map(h=>`<th${h!=="項目"?" style=\"text-align:right\"":""}>${h}</th>`).join('')}</tr>`;
 
-    bd.innerHTML = `
-      <div style="font-weight:700;margin:6px 0 4px">明細</div>
-      <table class="tbl">
-        <thead>${headHtml}</thead>
-        <tbody>${rows || `<tr><td colspan="${headers.length}" class="small">明細情報が取得できませんでした</td></tr>`}</tbody>
-      </table>
+    const rows = lines.map(l=>{
+      const name = l.name || '';
+      const detail = l.detail || '';
+      const code = l.code || '';
+      const grade = l.grade || '';
+      const price= `¥${fmtN(l.price!=null?l.price:l.amount)}`;
+      const cells = [];
+      const left = `${name}${colCode&&code?`<div class=\"small\">コード: ${code}</div>`:''}${colGrade&&grade?`<div class=\"small\">グレード: ${grade}</div>`:''}${detail?`<div class=\"small\" style=\"white-space:pre-wrap\">${detail}</div>`:''}`;
+      cells.push(`<td>${left}</td>`);
+      if(colPart)  cells.push(`<td style=\"text-align:right\">${has(l,'part')?`¥${fmtN(l.part)}`:'-'}</td>`);
+      if(colLabor) cells.push(`<td style=\"text-align:right\">${has(l,'labor')?`¥${fmtN(l.labor)}`:'-'}</td>`);
+      if(colCoef)  cells.push(`<td style=\"text-align:right\">${has(l,'coef')?String(l.coef):'-'}</td>`);
+      cells.push(`<td style=\"text-align:right\"><b>${price}</b></td>`);
+      return `<tr>${cells.join('')}</tr>`;
+    }).join('');
 
-      <div style="font-weight:700;margin:12px 0 4px">サマリ</div>
-      <table class="tbl"><tbody>${summaryRows}</tbody></table>
-    `;
+    const t = data.totals || {};
+    const summaryRows = [
+      (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotal)}</td></tr>` : '',
+      (t.roundUnit!=null)       ? `<tr><th>丸め単位</th><td style=\"text-align:right\">${t.roundUnit}</td></tr>` : '',
+      (t.subtotalRounded!=null) ? `<tr><th>小計（切捨調整後・税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotalRounded)}</td></tr>` : '',
+      (t.taxRate!=null)         ? `<tr><th>消費税率</th><td style=\"text-align:right\">${t.taxRate}%</td></tr>` : '',
+      (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">¥${fmtN(t.taxInt)}</td></tr>` : '',
+      (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>¥${fmtN(t.grand)}</b></td></tr>` : ''
+    ].filter(Boolean).join('');
 
-    btnT.style.display = 'inline-block';
-    bd.style.display = 'none';
-    btnT.textContent = '詳細を表示';
-    btnT.onclick = ()=>{
-      const isOpen = bd.style.display !== 'none';
-      bd.style.display = isOpen ? 'none' : 'block';
-      btnT.textContent = isOpen ? '詳細を表示' : '詳細を閉じる';
-    };
-  }catch(e){
-    qs('msg').textContent = e.message || '処理に失敗しました';
-  }finally{
-    hideLoading(); btn.disabled = false;
-  }
+    bd.innerHTML = `
+      <div style="font-weight:700;margin:6px 0 4px">明細</div>
+      <table class="tbl">
+        <thead>${headHtml}</thead>
+        <tbody>${rows || `<tr><td colspan="${headers.length}" class="small">明細情報が取得できませんでした</td></tr>`}</tbody>
+      </table>
+
+      <div style="font-weight:700;margin:12px 0 4px">サマリ</div>
+      <table class="tbl"><tbody>${summaryRows}</tbody></table>
+    `;
+
+    btnT.style.display = 'inline-block';
+    bd.style.display = 'none';
+    btnT.textContent = '詳細を表示';
+    btnT.onclick = ()=>{
+      const isOpen = bd.style.display !== 'none';
+      bd.style.display = isOpen ? 'none' : 'block';
+      btnT.textContent = isOpen ? '詳細を表示' : '詳細を閉じる';
+    };
+  }catch(e){
+    qs('msg').textContent = e.message || '処理に失敗しました';
+  }finally{
+    hideLoading(); btn.disabled = false;
+  }
 };
-
 /* ===== QR branch 表示 ===== */
 (function initBranchFromQR(){
   const badge = qs('branchBadge');
