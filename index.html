@@ -616,25 +616,31 @@ qs('btnQuote').onclick = async ()=>{
     
     const headHtml = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
 
-    const rows = lines.map(l=>{
-      const name = l.name || '';
-      const detail = l.detail || '';
-      const code = l.code || '';
-      const grade = l.grade || '';
-      
-      // ★ 2. 価格の表示を制御 (price変数定義部分を修正)
-      const priceValue = l.price!=null?l.price:l.amount;
-      const price = showPrices ? `¥${fmtN(priceValue)}` : '-';
-      
-      const cells = [];
-      const left = `${name}${colCode&&code?`<div class=\"small\">コード: ${code}</div>`:''}${colGrade&&grade?`<div class=\"small\">グレード: ${grade}</div>`:''}${detail?`<div class=\"small\" style=\"white-space:pre-wrap\">${detail}</div>`:''}`;
-      cells.push(`<td>${left}</td>`);
-// ... (中略：部品、工賃、係数のセル生成) ...
-      
-      // ★ 3. 合計価格のセルを修正
-      cells.push(`<td style=\"text-align:right\"><b>${price}</b></td>`);
-      return `<tr>${cells.join('')}</tr>`;
-    }).join('');
+    const rows = lines.map(l=>{
+      const name = l.name || '';
+      const detail = l.detail || '';
+      const code = l.code || '';
+      const grade = l.grade || '';
+      
+      // ★ 2. 価格の表示を制御 (price変数定義部分を修正)
+      const priceValue = l.price!=null?l.price:l.amount;
+      const price = showPrices ? `¥${fmtN(priceValue)}` : '-';
+      
+      const cells = [];
+      const left = `${name}${colCode&&code?`<div class=\"small\">コード: ${code}</div>`:''}${colGrade&&grade?`<div class=\"small\">グレード: ${grade}</div>`:''}${detail?`<div class=\"small\" style=\"white-space:pre-wrap\">${detail}</div>`:''}`;
+      cells.push(`<td>${left}</td>`);
+      
+      // ⬇️⬇️⬇️ ここからが追加・修正部分 ⬇️⬇️⬇️
+      // 部品、工賃、係数のセル生成ロジックを追加
+      if(colPart)  cells.push(`<td style="text-align:right">${showPrices && l.part!=null ? `¥${fmtN(l.part)}` : '-'}</td>`);
+      if(colLabor) cells.push(`<td style="text-align:right">${showPrices && l.labor!=null ? `¥${fmtN(l.labor)}` : '-'}</td>`);
+      if(colCoef)  cells.push(`<td style="text-align:right">${l.coef!=null ? fmtN(l.coef) : '-'}</td>`); // 係数は金額ではないため showPrices 制御不要
+      // ⬆️⬆️⬆️ ここまでが追加・修正部分 ⬆️⬆️⬆️
+      
+      // ★ 3. 合計価格のセルを修正
+      cells.push(`<td style=\"text-align:right\"><b>${price}</b></td>`);
+      return `<tr>${cells.join('')}</tr>`;
+    }).join('');
 
     const t = data.totals || {};
     const summaryRows = [
