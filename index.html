@@ -591,45 +591,40 @@ qs('btnQuote').onclick = async ()=>{
     const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
     const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
 
+    // ★ 1. ここでも showPrices 変数を再利用
+    const showPrices = qs('showPrices')?.checked || true;
+
     const lines = data.display?.lines || [];
-    const colPart  = lines.some(l=>has(l,'part'));
-    const colLabor = lines.some(l=>has(l,'labor'));
-    const colCoef  = lines.some(l=>has(l,'coef'));
-    const colCode  = lines.some(l=>has(l,'code'));
-    const colGrade = lines.some(l=>has(l,'grade'));
-
-    const headers = ["項目"];
-    if(colPart)  headers.push("部品");
-    if(colLabor) headers.push("工賃");
-    if(colCoef)  headers.push("係数");
-    headers.push("計");
-
-    const headHtml = `<tr>${headers.map(h=>`<th${h!=="項目"?" style=\"text-align:right\"":""}>${h}</th>`).join('')}</tr>`;
+// ... (中略：headers の定義、headHtml の生成) ...
 
     const rows = lines.map(l=>{
       const name = l.name || '';
       const detail = l.detail || '';
       const code = l.code || '';
       const grade = l.grade || '';
-      const price= `¥${fmtN(l.price!=null?l.price:l.amount)}`;
+      
+      // ★ 2. 価格の表示を制御 (price変数定義部分を修正)
+      const priceValue = l.price!=null?l.price:l.amount;
+      const price = showPrices ? `¥${fmtN(priceValue)}` : '-';
+      
       const cells = [];
       const left = `${name}${colCode&&code?`<div class=\"small\">コード: ${code}</div>`:''}${colGrade&&grade?`<div class=\"small\">グレード: ${grade}</div>`:''}${detail?`<div class=\"small\" style=\"white-space:pre-wrap\">${detail}</div>`:''}`;
       cells.push(`<td>${left}</td>`);
-      if(colPart)  cells.push(`<td style=\"text-align:right\">${has(l,'part')?`¥${fmtN(l.part)}`:'-'}</td>`);
-      if(colLabor) cells.push(`<td style=\"text-align:right\">${has(l,'labor')?`¥${fmtN(l.labor)}`:'-'}</td>`);
-      if(colCoef)  cells.push(`<td style=\"text-align:right\">${has(l,'coef')?String(l.coef):'-'}</td>`);
+// ... (中略：部品、工賃、係数のセル生成) ...
+      
+      // ★ 3. 合計価格のセルを修正
       cells.push(`<td style=\"text-align:right\"><b>${price}</b></td>`);
       return `<tr>${cells.join('')}</tr>`;
     }).join('');
 
     const t = data.totals || {};
     const summaryRows = [
-      (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotal)}</td></tr>` : '',
+      (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">${showPrices ? `¥${fmtN(t.subtotal)}` : '-'}</td></tr>` : '', // ★ 小計の修正
       (t.roundUnit!=null)       ? `<tr><th>丸め単位</th><td style=\"text-align:right\">${t.roundUnit}</td></tr>` : '',
-      (t.subtotalRounded!=null) ? `<tr><th>小計（切捨調整後・税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotalRounded)}</td></tr>` : '',
+      (t.subtotalRounded!=null) ? `<tr><th>小計（切捨調整後・税抜）</th><td style=\"text-align:right\">${showPrices ? `¥${fmtN(t.subtotalRounded)}` : '-'}</td></tr>` : '', // ★ 小計(切捨)の修正
       (t.taxRate!=null)         ? `<tr><th>消費税率</th><td style=\"text-align:right\">${t.taxRate}%</td></tr>` : '',
-      (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">¥${fmtN(t.taxInt)}</td></tr>` : '',
-      (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>¥${fmtN(t.grand)}</b></td></tr>` : ''
+      (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">${showPrices ? `¥${fmtN(t.taxInt)}` : '-'}</td></tr>` : '', // ★ 消費税額の修正
+      (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>${showPrices ? `¥${fmtN(t.grand)}` : '-'}</b></td></tr>` : '' // ★ 合計(税込)の修正
     ].filter(Boolean).join('');
 
     bd.innerHTML = `
