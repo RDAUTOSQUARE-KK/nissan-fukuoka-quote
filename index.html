@@ -142,14 +142,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
         <select id="optOTTO"><option value="">選択なし</option></select>
         <div id="optOTTOInfo" class="iteminfo"></div>
       </div>
-      
-       <div style="margin-top: 12px;">
-        <label style="display:flex; align-items:center;">
-          <input type="checkbox" id="showPrices" checked style="width:auto; margin-right: 8px;">
-          金額を表示する
-        </label>
-      </div>
-
 
       <div class="stack">
         <button id="btnQuote">見積を表示</button>
@@ -518,157 +510,106 @@ function printQuote(){ window.print(); }
 
 /* ===== 見積（POST → 結果表示＋内訳） ===== */
 qs('btnQuote').onclick = async ()=>{
-  const btn = qs('btnQuote');
-  qs('msg').textContent = '';
-  btn.disabled = true; showLoading("見積を計算中…");
+  const btn = qs('btnQuote');
+  qs('msg').textContent = '';
+  btn.disabled = true; showLoading("見積を計算中…");
+  try{
+    if(!BRANCH_CODE) throw new Error("店舗情報がQRに含まれていません。正しいQRからアクセスしてください。");
+    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
 
-  // ⬇️⬇️⬇️ 【修正点】fmtN と has の定義を関数の冒頭に移動 ⬇️⬇️⬇️
-  const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
-  const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
-  // ⬆️⬆️⬆️ ここに移動 ⬆️⬆️⬆️
+    const selTo10 = v => v && v.length ? "1" : "0";
+    const payload = {
+      intent: "quote",
+      salesperson: qs('salesperson').value.trim(),
+      vehicle,
+      nav_selected: selTo10(qs('navTier').value),
+      etc_selected: selTo10(qs('etcTier').value),
+      drc_selected: selTo10(qs('drcTier').value),
+      bcm_selected: selTo10(qs('bcmTier').value),
+      rse_selected: selTo10(qs('rseTier').value),
+      nav_grade: qs('navTier').value || null,
+      etc_grade: qs('etcTier').value || null,
+      drc_grade: qs('drcTier').value || null,
+      bcm_grade: qs('bcmTier').value || null,
+      rse_grade: qs('rseTier').value || null,
+      opt_usb_code: (qs('optUSB').value||null),
+      opt_hdmi_code: (qs('optHDMI').value||null),
+      opt_otto_code: (qs('optOTTO').value||null),
+      selectedItems: Object.values(selectedCatalogInfo).filter(Boolean)
+    };
 
-  // ★★★ showPrices を取得 ★★★
-  const showPrices = qs('showPrices')?.checked || true;
+    const data = await callFlow(payload);
 
-  try{
-    if(!BRANCH_CODE) throw new Error("店舗情報がQRに含まれていません。正しいQRからアクセスしてください。");
-    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
+    if(data.validation?.errors?.length){
+      qs('result').style.display='none';
+      qs('msg').textContent = data.validation.errors.join(' / ');
+      return;
+    }
 
-    const selTo10 = v => v && v.length ? "1" : "0";
-    const payload = {
-      intent: "quote",
-      salesperson: qs('salesperson').value.trim(),
-      vehicle,
-      nav_selected: selTo10(qs('navTier').value),
-      etc_selected: selTo10(qs('etcTier').value),
-      drc_selected: selTo10(qs('drcTier').value),
-      bcm_selected: selTo10(qs('bcmTier').value),
-      rse_selected: selTo10(qs('rseTier').value),
-      nav_grade: qs('navTier').value || null,
-      etc_grade: qs('etcTier').value || null,
-      drc_grade: qs('drcTier').value || null,
-      bcm_grade: qs('bcmTier').value || null,
-      rse_grade: qs('rseTier').value || null,
-      opt_usb_code: (qs('optUSB').value||null),
-      opt_hdmi_code: (qs('optHDMI').value||null),
-      opt_otto_code: (qs('optOTTO').value||null),
-      selectedItems: Object.values(selectedCatalogInfo).filter(Boolean)
-    };
+    // シンプル行
+    const linesEl = qs('lines'); linesEl.innerHTML = '';
+    (data.display?.lines||[]).forEach(l=>{
+      const name = l.name || '';
+      const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
+      linesEl.insertAdjacentHTML('beforeend',
+        `<div class="line"><div>${name}${detail}</div><div>¥${Number(l.price||l.amount||0).toLocaleString()}</div></div>`
+      );
+    });
 
-    const data = await callFlow(payload);
-
-    if(data.validation?.errors?.length){
-      qs('result').style.display='none';
-      qs('msg').textContent = data.validation.errors.join(' / ');
-      return;
-    }
-
-    // シンプル行
-    const linesEl = qs('lines'); linesEl.innerHTML = '';
-    (data.display?.lines||[]).forEach(l=>{
-      const name = l.name || '';
-      
-      // ⬇️⬇️⬇️ グレード情報の追加ロジック ⬇️⬇️⬇️
-      const grade = l.grade || null;
-      const detail = l.detail || null;
-      // グレード、詳細を項目名の下に表示する
-      const subInfo = [
-          grade ? `グレード: ${grade}` : null,
-          detail ? detail : null
-      ].filter(Boolean).join(' | ');
-
-      const nameWithDetail = `${name}${subInfo?`<div class="small" style="color:#374151">${subInfo}</div>` : ''}`;
-      // ⬆️⬆️⬆️ ここまで ⬆️⬆️⬆️
-      
-      // ★ 2. 計（金額）表示を制御
-      const priceValue = Number(l.price||l.amount||0);
-      const priceText = showPrices 
-          ? `¥${priceValue.toLocaleString()}` 
-          : '-'; 
-
-      linesEl.insertAdjacentHTML('beforeend',
-        `<div class="line"><div>${nameWithDetail}</div><div>${priceText}</div></div>`
-      );
-    });
-
-    // ★ 3. 合計金額の表示を制御
-    const grandTotal = Number(data.totals?.grand||0);
-    qs('grand').textContent = showPrices
-        ? '合計(税込) ¥' + grandTotal.toLocaleString()
-        : '合計(税込) -';
-
-    qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
-    qs('result').style.display = 'block';
-    await sleep(50);
-    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
-    
-    // CSVエクスポート用に最終見積もりデータを保存
-    window.lastQuote = data;
-
-    /* --- 詳細内訳（可変列ヘッダ） --- */
-    const bd = qs('breakdown');
-    const btnT = qs('toggleDetail');
-    // fmtN と has は関数の冒頭で定義済み
-
-    const lines = data.display?.lines || [];
-    
-    // ... (詳細内訳テーブルのロジックはここから) ...
-    // ...
-}
+    qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString();
+    qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
+    qs('result').style.display = 'block';
+    await sleep(50);
+    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
     
-    // ★★★ 欠落している列判定変数の定義をここに追加 ★★★
-    const colPart  = lines.some(l=>has(l,'part'));
-    const colLabor = lines.some(l=>has(l,'labor'));
-    const colCoef  = lines.some(l=>has(l,'coef'));
-    const colCode  = lines.some(l=>has(l,'code'));
-    const colGrade = lines.some(l=>has(l,'grade'));
-    // (もし 'tax' や 'discount' を追加していた場合はここに追加)
-    
-    // ヘッダー生成ロジックの再構築
+    // CSVエクスポート用に最終見積もりデータを保存
+    window.lastQuote = data;
+
+    /* --- 詳細内訳（可変列ヘッダ） --- */
+    const bd = qs('breakdown');
+    const btnT = qs('toggleDetail');
+    const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
+    const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
+
+    const lines = data.display?.lines || [];
+    const colPart  = lines.some(l=>has(l,'part'));
+    const colLabor = lines.some(l=>has(l,'labor'));
+    const colCoef  = lines.some(l=>has(l,'coef'));
+    const colCode  = lines.some(l=>has(l,'code'));
+    const colGrade = lines.some(l=>has(l,'grade'));
+
     const headers = ["項目"];
     if(colPart)  headers.push("部品");
     if(colLabor) headers.push("工賃");
     if(colCoef)  headers.push("係数");
-    if(colCode)  headers.push("コード");
-    if(colGrade) headers.push("グレード");
     headers.push("計");
-    
-    const headHtml = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
 
-    const rows = lines.map(l=>{
-      const name = l.name || '';
-      const detail = l.detail || '';
-      const code = l.code || '';
-      const grade = l.grade || '';
-      
-      // ★ 2. 価格の表示を制御 (price変数定義部分を修正)
-      const priceValue = l.price!=null?l.price:l.amount;
-      const price = showPrices ? `¥${fmtN(priceValue)}` : '-';
-      
-      const cells = [];
-      const left = `${name}${colCode&&code?`<div class=\"small\">コード: ${code}</div>`:''}${colGrade&&grade?`<div class=\"small\">グレード: ${grade}</div>`:''}${detail?`<div class=\"small\" style=\"white-space:pre-wrap\">${detail}</div>`:''}`;
-      cells.push(`<td>${left}</td>`);
-      
-      // ⬇️⬇️⬇️ ここからが追加・修正部分 ⬇️⬇️⬇️
-      // 部品、工賃、係数のセル生成ロジックを追加
-      if(colPart)  cells.push(`<td style="text-align:right">${showPrices && l.part!=null ? `¥${fmtN(l.part)}` : '-'}</td>`);
-      if(colLabor) cells.push(`<td style="text-align:right">${showPrices && l.labor!=null ? `¥${fmtN(l.labor)}` : '-'}</td>`);
-      if(colCoef)  cells.push(`<td style="text-align:right">${l.coef!=null ? fmtN(l.coef) : '-'}</td>`); // 係数は金額ではないため showPrices 制御不要
-      // ⬆️⬆️⬆️ ここまでが追加・修正部分 ⬆️⬆️⬆️
-      
-      // ★ 3. 合計価格のセルを修正
-      cells.push(`<td style=\"text-align:right\"><b>${price}</b></td>`);
-      return `<tr>${cells.join('')}</tr>`;
-    }).join('');
+    const headHtml = `<tr>${headers.map(h=>`<th${h!=="項目"?" style=\"text-align:right\"":""}>${h}</th>`).join('')}</tr>`;
+
+    const rows = lines.map(l=>{
+      const name = l.name || '';
+      const detail = l.detail || '';
+      const code = l.code || '';
+      const grade = l.grade || '';
+      const price= `¥${fmtN(l.price!=null?l.price:l.amount)}`;
+      const cells = [];
+      const left = `${name}${colCode&&code?`<div class=\"small\">コード: ${code}</div>`:''}${colGrade&&grade?`<div class=\"small\">グレード: ${grade}</div>`:''}${detail?`<div class=\"small\" style=\"white-space:pre-wrap\">${detail}</div>`:''}`;
+      cells.push(`<td>${left}</td>`);
+      if(colPart)  cells.push(`<td style=\"text-align:right\">${has(l,'part')?`¥${fmtN(l.part)}`:'-'}</td>`);
+      if(colLabor) cells.push(`<td style=\"text-align:right\">${has(l,'labor')?`¥${fmtN(l.labor)}`:'-'}</td>`);
+      if(colCoef)  cells.push(`<td style=\"text-align:right\">${has(l,'coef')?String(l.coef):'-'}</td>`);
+      cells.push(`<td style=\"text-align:right\"><b>${price}</b></td>`);
+      return `<tr>${cells.join('')}</tr>`;
+    }).join('');
 
     const t = data.totals || {};
     const summaryRows = [
-      (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">${showPrices ? `¥${fmtN(t.subtotal)}` : '-'}</td></tr>` : '', // ★ 小計の修正
+      (t.subtotal!=null)        ? `<tr><th>小計（税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotal)}</td></tr>` : '',
       (t.roundUnit!=null)       ? `<tr><th>丸め単位</th><td style=\"text-align:right\">${t.roundUnit}</td></tr>` : '',
-      (t.subtotalRounded!=null) ? `<tr><th>小計（切捨調整後・税抜）</th><td style=\"text-align:right\">${showPrices ? `¥${fmtN(t.subtotalRounded)}` : '-'}</td></tr>` : '', // ★ 小計(切捨)の修正
+      (t.subtotalRounded!=null) ? `<tr><th>小計（切捨調整後・税抜）</th><td style=\"text-align:right\">¥${fmtN(t.subtotalRounded)}</td></tr>` : '',
       (t.taxRate!=null)         ? `<tr><th>消費税率</th><td style=\"text-align:right\">${t.taxRate}%</td></tr>` : '',
-      (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">${showPrices ? `¥${fmtN(t.taxInt)}` : '-'}</td></tr>` : '', // ★ 消費税額の修正
-      (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>${showPrices ? `¥${fmtN(t.grand)}` : '-'}</b></td></tr>` : '' // ★ 合計(税込)の修正
+      (t.taxInt!=null)          ? `<tr><th>消費税額</th><td style=\"text-align:right\">¥${fmtN(t.taxInt)}</td></tr>` : '',
+      (t.grand!=null)           ? `<tr><th>合計（税込）</th><td style=\"text-align:right\"><b>¥${fmtN(t.grand)}</b></td></tr>` : ''
     ].filter(Boolean).join('');
 
     bd.innerHTML = `
