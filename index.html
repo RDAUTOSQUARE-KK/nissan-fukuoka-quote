@@ -560,20 +560,36 @@ qs('btnQuote').onclick = async ()=>{
 
     // シンプル行
     const linesEl = qs('lines'); linesEl.innerHTML = '';
-    (data.display?.lines||[]).forEach(l=>{
-      const name = l.name || '';
-      const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
+    (data.display?.lines||[]).forEach(l=>{
+      const name = l.name || '';
       
-      // ★ 2. 金額表示を制御
-      const priceValue = Number(l.price||l.amount||0);
-      const priceText = showPrices 
-          ? `¥${priceValue.toLocaleString()}` 
-          : '-'; 
+      // 1. 各項目を取得
+      const labor = l.labor != null && l.labor !== 0 ? `工賃: ¥${fmtN(l.labor)}` : null; // fmtN 関数は詳細内訳ブロックで定義されていますが、ここでは動作保証のため fmtN を使用すると仮定します。
+      const code = l.code || null;
+      const grade = l.grade || null;
+      const detail = l.detail || null;
 
-      linesEl.insertAdjacentHTML('beforeend',
-        `<div class="line"><div>${name}${detail}</div><div>${priceText}</div></div>`
-      );
-    });
+      // 2. 詳細情報を構築（項目名の下に表示する部分）
+      const subInfo = [
+          code ? `コード: ${code}` : null,
+          grade ? `グレード: ${grade}` : null,
+          labor && showPrices ? labor : null, // 金額表示がONの場合のみ工賃を表示
+          detail ? `詳細: ${detail}` : null
+      ].filter(Boolean).join(' | ');
+
+      // 3. 項目名の部分を構築
+      const nameWithDetail = `${name}${subInfo?`<div class="small" style="color:#374151">${subInfo}</div>` : ''}`;
+      
+      // ★ 4. 金額表示を制御
+      const priceValue = Number(l.price||l.amount||0);
+      const priceText = showPrices 
+          ? `¥${priceValue.toLocaleString()}` 
+          : '-'; 
+
+      linesEl.insertAdjacentHTML('beforeend',
+        `<div class="line"><div>${nameWithDetail}</div><div>${priceText}</div></div>`
+      );
+    });
 
     // ★ 3. 合計金額の表示を制御
     const grandTotal = Number(data.totals?.grand||0);
