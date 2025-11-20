@@ -518,11 +518,16 @@ function printQuote(){ window.print(); }
 
 /* ===== 見積（POST → 結果表示＋内訳） ===== */
 qs('btnQuote').onclick = async ()=>{
-  const btn = qs('btnQuote');
-  qs('msg').textContent = '';
-  btn.disabled = true; showLoading("見積を計算中…");
+  const btn = qs('btnQuote');
+  qs('msg').textContent = '';
+  btn.disabled = true; showLoading("見積を計算中…");
 
-  // ★★★ ここで showPrices を宣言・取得します ★★★
+  // ⬇️⬇️⬇️ fmtN の定義をここに移動する ⬇️⬇️⬇️
+  const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
+  const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
+  // ⬆️⬆️⬆️ ここに移動する ⬆️⬆️⬆️
+
+  // ★★★ ここで showPrices を宣言・取得します ★★★
   const showPrices = qs('showPrices')?.checked || true;
 
   try{
@@ -559,9 +564,10 @@ qs('btnQuote').onclick = async ()=>{
     }
 
     // シンプル行
-    const linesEl = qs('lines'); linesEl.innerHTML = '';
-(data.display?.lines||[]).forEach(l=>{
-  const name = l.name || '';
+   const linesEl = qs('lines'); linesEl.innerHTML = '';
+    (data.display?.lines||[]).forEach(l=>{
+// ... (この中で fmtN を安全に使用できるようになる) ...
+    });
   
   // 【修正点】グレード情報と詳細情報を結合
   const grade = l.grade || null;
@@ -604,9 +610,7 @@ qs('btnQuote').onclick = async ()=>{
     /* --- 詳細内訳（可変列ヘッダ） --- */
     const bd = qs('breakdown');
     const btnT = qs('toggleDetail');
-    const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
-    const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
-
+    
     const lines = data.display?.lines || [];
     
     // ★★★ 欠落している列判定変数の定義をここに追加 ★★★
