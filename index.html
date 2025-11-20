@@ -522,95 +522,96 @@ qs('btnQuote').onclick = async ()=>{
   qs('msg').textContent = '';
   btn.disabled = true; showLoading("見積を計算中…");
 
-  // ⬇️⬇️⬇️ fmtN の定義をここに移動する ⬇️⬇️⬇️
+  // ⬇️⬇️⬇️ 【修正点1】fmtN と has の定義を関数の冒頭に移動 ⬇️⬇️⬇️
   const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
   const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
-  // ⬆️⬆️⬆️ ここに移動する ⬆️⬆️⬆️
+  // ⬆️⬆️⬆️ ここに移動 ⬆️⬆️⬆️
 
   // ★★★ ここで showPrices を宣言・取得します ★★★
   const showPrices = qs('showPrices')?.checked || true;
 
-  try{
-    if(!BRANCH_CODE) throw new Error("店舗情報がQRに含まれていません。正しいQRからアクセスしてください。");
-    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
+  try{
+    if(!BRANCH_CODE) throw new Error("店舗情報がQRに含まれていません。正しいQRからアクセスしてください。");
+    const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
 
-    const selTo10 = v => v && v.length ? "1" : "0";
-    const payload = {
-      intent: "quote",
-      salesperson: qs('salesperson').value.trim(),
-      vehicle,
-      nav_selected: selTo10(qs('navTier').value),
-      etc_selected: selTo10(qs('etcTier').value),
-      drc_selected: selTo10(qs('drcTier').value),
-      bcm_selected: selTo10(qs('bcmTier').value),
-      rse_selected: selTo10(qs('rseTier').value),
-      nav_grade: qs('navTier').value || null,
-      etc_grade: qs('etcTier').value || null,
-      drc_grade: qs('drcTier').value || null,
-      bcm_grade: qs('bcmTier').value || null,
-      rse_grade: qs('rseTier').value || null,
-      opt_usb_code: (qs('optUSB').value||null),
-      opt_hdmi_code: (qs('optHDMI').value||null),
-      opt_otto_code: (qs('optOTTO').value||null),
-      selectedItems: Object.values(selectedCatalogInfo).filter(Boolean)
-    };
+    const selTo10 = v => v && v.length ? "1" : "0";
+    const payload = {
+      intent: "quote",
+      salesperson: qs('salesperson').value.trim(),
+      vehicle,
+      nav_selected: selTo10(qs('navTier').value),
+      etc_selected: selTo10(qs('etcTier').value),
+      drc_selected: selTo10(qs('drcTier').value),
+      bcm_selected: selTo10(qs('bcmTier').value),
+      rse_selected: selTo10(qs('rseTier').value),
+      nav_grade: qs('navTier').value || null,
+      etc_grade: qs('etcTier').value || null,
+      drc_grade: qs('drcTier').value || null,
+      bcm_grade: qs('bcmTier').value || null,
+      rse_grade: qs('rseTier').value || null,
+      opt_usb_code: (qs('optUSB').value||null),
+      opt_hdmi_code: (qs('optHDMI').value||null),
+      opt_otto_code: (qs('optOTTO').value||null),
+      selectedItems: Object.values(selectedCatalogInfo).filter(Boolean)
+    };
 
-    const data = await callFlow(payload);
+    const data = await callFlow(payload);
 
-    if(data.validation?.errors?.length){
-      qs('result').style.display='none';
-      qs('msg').textContent = data.validation.errors.join(' / ');
-      return;
-    }
+    if(data.validation?.errors?.length){
+      qs('result').style.display='none';
+      qs('msg').textContent = data.validation.errors.join(' / ');
+      return;
+    }
 
-    // シンプル行
-   const linesEl = qs('lines'); linesEl.innerHTML = '';
+    // シンプル行
+    const linesEl = qs('lines'); linesEl.innerHTML = '';
     (data.display?.lines||[]).forEach(l=>{
-// ... (この中で fmtN を安全に使用できるようになる) ...
+      const name = l.name || '';
+      
+      // ⬇️⬇️⬇️ 【修正点2】シンプル行にグレード情報を追加 ⬇️⬇️⬇️
+      const grade = l.grade || null;
+      const detail = l.detail || null;
+      // グレード、詳細を項目名の下に表示する
+      const subInfo = [
+          grade ? `グレード: ${grade}` : null,
+          detail ? detail : null // detail は「詳細」としてそのまま表示
+      ].filter(Boolean).join(' | ');
+
+      const nameWithDetail = `${name}${subInfo?`<div class="small" style="color:#374151">${subInfo}</div>` : ''}`;
+      // ⬆️⬆️⬆️ グレード情報の追加はここまで ⬆️⬆️⬆️
+      
+      // ★ 2. 金額表示を制御
+      const priceValue = Number(l.price||l.amount||0);
+      const priceText = showPrices 
+          ? `¥${priceValue.toLocaleString()}` 
+          : '-'; 
+
+      linesEl.insertAdjacentHTML('beforeend',
+        `<div class="line"><div>${nameWithDetail}</div><div>${priceText}</div></div>`
+      );
     });
-  
-  // 【修正点】グレード情報と詳細情報を結合
-  const grade = l.grade || null;
-  const detail = l.detail || null;
-  
-  // グレード、詳細を項目名の下に表示する
-  const subInfo = [
-      grade ? `グレード: ${grade}` : null,
-      detail ? `詳細: ${detail}` : null
-  ].filter(Boolean).join(' | ');
 
-  const nameWithDetail = `${name}${subInfo?`<div class="small" style="color:#374151">${subInfo}</div>` : ''}`;
-  
-  // ★ 2. 金額表示を制御
-  const priceValue = Number(l.price||l.amount||0);
-  const priceText = showPrices 
-        ? `¥${priceValue.toLocaleString()}` 
-        : '-'; 
+    // ★ 3. 合計金額の表示を制御
+    const grandTotal = Number(data.totals?.grand||0);
+    qs('grand').textContent = showPrices
+        ? '合計(税込) ¥' + grandTotal.toLocaleString()
+        : '合計(税込) -';
 
-  linesEl.insertAdjacentHTML('beforeend',
-    // 項目名＋（グレード・詳細）と、計（価格）の2列表示を維持
-    `<div class="line"><div>${nameWithDetail}</div><div>${priceText}</div></div>`
-  );
-});
-
-    // ★ 3. 合計金額の表示を制御
-    const grandTotal = Number(data.totals?.grand||0);
-    qs('grand').textContent = showPrices
-        ? '合計(税込) ¥' + grandTotal.toLocaleString()
-        : '合計(税込) -';
-
-    qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
-    qs('result').style.display = 'block';
-    await sleep(50);
-    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
-    
-    // CSVエクスポート用に最終見積もりデータを保存
-    window.lastQuote = data;
+    qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
+    qs('result').style.display = 'block';
+    await sleep(50);
+    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+    
+    // CSVエクスポート用に最終見積もりデータを保存
+    window.lastQuote = data;
 
     /* --- 詳細内訳（可変列ヘッダ） --- */
     const bd = qs('breakdown');
     const btnT = qs('toggleDetail');
-    
+    // ⚠️ 注意: ここにあった fmtN と has の定義は関数の冒頭に移動したので、この行は削除またはコメントアウトが必要です。
+    // const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
+    // const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
+
     const lines = data.display?.lines || [];
     
     // ★★★ 欠落している列判定変数の定義をここに追加 ★★★
