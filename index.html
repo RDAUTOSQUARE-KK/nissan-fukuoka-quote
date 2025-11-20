@@ -522,12 +522,12 @@ qs('btnQuote').onclick = async ()=>{
   qs('msg').textContent = '';
   btn.disabled = true; showLoading("見積を計算中…");
 
-  // ⬇️⬇️⬇️ 【修正点1】fmtN と has の定義を関数の冒頭に移動 ⬇️⬇️⬇️
+  // ⬇️⬇️⬇️ 【修正点】fmtN と has の定義を関数の冒頭に移動 ⬇️⬇️⬇️
   const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
   const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
   // ⬆️⬆️⬆️ ここに移動 ⬆️⬆️⬆️
 
-  // ★★★ ここで showPrices を宣言・取得します ★★★
+  // ★★★ showPrices を取得 ★★★
   const showPrices = qs('showPrices')?.checked || true;
 
   try{
@@ -568,19 +568,19 @@ qs('btnQuote').onclick = async ()=>{
     (data.display?.lines||[]).forEach(l=>{
       const name = l.name || '';
       
-      // ⬇️⬇️⬇️ 【修正点2】シンプル行にグレード情報を追加 ⬇️⬇️⬇️
+      // ⬇️⬇️⬇️ グレード情報の追加ロジック ⬇️⬇️⬇️
       const grade = l.grade || null;
       const detail = l.detail || null;
       // グレード、詳細を項目名の下に表示する
       const subInfo = [
           grade ? `グレード: ${grade}` : null,
-          detail ? detail : null // detail は「詳細」としてそのまま表示
+          detail ? detail : null
       ].filter(Boolean).join(' | ');
 
       const nameWithDetail = `${name}${subInfo?`<div class="small" style="color:#374151">${subInfo}</div>` : ''}`;
-      // ⬆️⬆️⬆️ グレード情報の追加はここまで ⬆️⬆️⬆️
+      // ⬆️⬆️⬆️ ここまで ⬆️⬆️⬆️
       
-      // ★ 2. 金額表示を制御
+      // ★ 2. 計（金額）表示を制御
       const priceValue = Number(l.price||l.amount||0);
       const priceText = showPrices 
           ? `¥${priceValue.toLocaleString()}` 
@@ -608,12 +608,14 @@ qs('btnQuote').onclick = async ()=>{
     /* --- 詳細内訳（可変列ヘッダ） --- */
     const bd = qs('breakdown');
     const btnT = qs('toggleDetail');
-    // ⚠️ 注意: ここにあった fmtN と has の定義は関数の冒頭に移動したので、この行は削除またはコメントアウトが必要です。
-    // const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
-    // const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
+    // fmtN と has は関数の冒頭で定義済み
 
     const lines = data.display?.lines || [];
     
+    // ... (詳細内訳テーブルのロジックはここから) ...
+    // ...
+}
+    
     // ★★★ 欠落している列判定変数の定義をここに追加 ★★★
     const colPart  = lines.some(l=>has(l,'part'));
     const colLabor = lines.some(l=>has(l,'labor'));
