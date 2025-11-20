@@ -521,6 +521,10 @@ qs('btnQuote').onclick = async ()=>{
   const btn = qs('btnQuote');
   qs('msg').textContent = '';
   btn.disabled = true; showLoading("見積を計算中…");
+
+  // ★★★ ここで showPrices を宣言・取得します ★★★
+  const showPrices = qs('showPrices')?.checked || true;
+
   try{
     if(!BRANCH_CODE) throw new Error("店舗情報がQRに含まれていません。正しいQRからアクセスしてください。");
     const vehicle = getVehicleCode(); if(!vehicle) throw new Error("車種を選択するか、手入力してください。");
@@ -590,9 +594,6 @@ qs('btnQuote').onclick = async ()=>{
     const btnT = qs('toggleDetail');
     const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
     const has = (o,k) => o && Object.prototype.hasOwnProperty.call(o,k) && o[k]!=null;
-
-    // ★ 1. ここでも showPrices 変数を再利用
-    const showPrices = qs('showPrices')?.checked || true;
 
     const lines = data.display?.lines || [];
 // ... (中略：headers の定義、headHtml の生成) ...
