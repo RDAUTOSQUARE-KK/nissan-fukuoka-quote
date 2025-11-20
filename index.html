@@ -142,6 +142,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
         <select id="optOTTO"><option value="">選択なし</option></select>
         <div id="optOTTOInfo" class="iteminfo"></div>
       </div>
+      
+       <div style="margin-top: 12px;">
+        <label style="display:flex; align-items:center;">
+          <input type="checkbox" id="showPrices" checked style="width:auto; margin-right: 8px;">
+          金額を表示する
+        </label>
+      </div>
+
 
       <div class="stack">
         <button id="btnQuote">見積を表示</button>
@@ -551,12 +559,24 @@ qs('btnQuote').onclick = async ()=>{
     (data.display?.lines||[]).forEach(l=>{
       const name = l.name || '';
       const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
+      
+      // ★ 2. 金額表示を制御
+      const priceValue = Number(l.price||l.amount||0);
+      const priceText = showPrices 
+          ? `¥${priceValue.toLocaleString()}` 
+          : '-'; 
+
       linesEl.insertAdjacentHTML('beforeend',
-        `<div class="line"><div>${name}${detail}</div><div>¥${Number(l.price||l.amount||0).toLocaleString()}</div></div>`
+        `<div class="line"><div>${name}${detail}</div><div>${priceText}</div></div>`
       );
     });
 
-    qs('grand').textContent = '合計(税込) ¥' + Number(data.totals?.grand||0).toLocaleString();
+    // ★ 3. 合計金額の表示を制御
+    const grandTotal = Number(data.totals?.grand||0);
+    qs('grand').textContent = showPrices
+        ? '合計(税込) ¥' + grandTotal.toLocaleString()
+        : '合計(税込) -';
+
     qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
     qs('result').style.display = 'block';
     await sleep(50);
