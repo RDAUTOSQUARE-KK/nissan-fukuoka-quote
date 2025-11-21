@@ -57,6 +57,16 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 /* ==== Print optimization (統合版) ==== */
 @media print{
+
+/* 究極の非表示ルール: IDセレクタで直接ターゲット */
+body.print-only-list #grand {
+  display: none !important; /* 合計金額を絶対非表示 */
+}
+
+body.print-only-list #breakdown {
+  display: none !important; /* 明細/サマリを絶対非表示 */
+}
+
   /* 通常印刷時に非表示にする共通要素 */
   .export-actions, .global-header, .footer, .spinner, .toggle, #btnQuote, #manualToggleBtn, .header, #notes { display:none !important; }
   
