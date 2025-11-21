@@ -86,12 +86,22 @@ button:disabled{opacity:.5;cursor:not-allowed}
     display: none !important;
   }
   
-  /* ⬇️⬇️⬇️ ここから追加・修正 ⬇️⬇️⬇️ */
-  /* 項目一覧モードでは、明細内の詳細（detail）を非表示にする */
-  body.print-only-list #lines .small {
-    display: none !important;
-  }
-  /* ⬆️⬆️⬆️ ここまで追加・修正 ⬆️⬆️⬆️ */
+  /* 1. シンプル表示の明細行にある詳細（.small）を非表示にする（既存修正の確認） */
+    body.print-only-list #lines .small {
+      display: none !important;
+    }
+
+    /* 2. シンプル表示の金額（.line-price）と合計金額（.total）を非表示にする（既存ルールの強化） */
+    body.print-only-list #lines .line-price,
+    body.print-only-list #grand
+    {
+        display: none !important;
+    }
+    
+    /* 3. 詳細内訳（#breakdown）が予期せず表示された場合でも、詳細内のコード/グレード/詳細を全て非表示にする */
+    body.print-only-list #breakdown .small {
+        display: none !important;
+    }
 
   /* 結果カードの枠線と背景を消す（リストだけを表示するため） */
   body.print-only-list #result {
