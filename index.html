@@ -61,9 +61,9 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .btn:hover{background:#f5f5f5}
 
 /* ==== Print optimization (統合版) ==== */
+/* ==== Print optimization (統合版) ==== */
 @media print{
   /* 通常印刷時に非表示にする共通要素 */
-  /* 削除: #printNoPriceToggle, [for="printNoPriceToggle"], を削除 */
   .export-actions, .global-header, .footer, .spinner, .toggle, #btnQuote, #manualToggleBtn, .header, #notes { display:none !important; }
   
   /* 印刷領域の調整 */
@@ -85,6 +85,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
   body.print-only-list > .card:first-of-type {
     display: none !important;
   }
+  
+  /* ⬇️⬇️⬇️ ここから追加・修正 ⬇️⬇️⬇️ */
+  /* 項目一覧モードでは、明細内の詳細（detail）を非表示にする */
+  body.print-only-list #lines .small {
+    display: none !important;
+  }
+  /* ⬆️⬆️⬆️ ここまで追加・修正 ⬆️⬆️⬆️ */
 
   /* 結果カードの枠線と背景を消す（リストだけを表示するため） */
   body.print-only-list #result {
