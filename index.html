@@ -206,12 +206,15 @@ body.print-only-list #breakdown {
       <button id="btnPrintOnlyList" class="btn">項目一覧のみ印刷</button>
     </div>
     <div id="lines"></div>
-    <div class="total" id="grand"></div>
 
-    <button id="toggleDetail" class="btn-ghost toggle" style="display:none">詳細を表示</button>
-    <div id="breakdown" style="display:none"></div>
-    <div id="notes" class="note"></div>
-  </div>
+        <div class="total" id="grand" style="display:none !important;"></div>
+
+        <button id="toggleDetail" class="btn-ghost toggle" style="display:none !important;">詳細を表示</button>
+
+        <div id="breakdown" style="display:none !important;"></div>
+
+    <div id="notes" class="note"></div>
+</div>
 
   <div id="loading" class="loading" aria-live="polite" aria-busy="true">
     <div style="display:flex; flex-direction:column; align-items:center;">
@@ -608,7 +611,8 @@ qs('btnQuote').onclick = async ()=>{
       const name = l.name || '';
       const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
       linesEl.insertAdjacentHTML('beforeend',
-        `<div class="line"><div>${name}${detail}</div><div class="line-price">¥${fmtN(l.price||l.amount||0)}</div></div>` // ★ class="line-price" を追加
+        // ここで style="display:none !important;" を追加する
+        `<div class="line"><div>${name}${detail}</div><div class="line-price" style="display:none !important;">¥${fmtN(l.price||l.amount||0)}</div></div>` 
       );
     });
 
