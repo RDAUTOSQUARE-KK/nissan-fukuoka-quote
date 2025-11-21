@@ -706,62 +706,52 @@ qs('btnQuote').onclick = async ()=>{
 /* ===== エクスポートボタン ===== */
 
 (function bindExportButtons(){
-  const btnCsv = document.getElementById('btnCsv');
-  const btnPdf = document.getElementById('btnPdf');
-  const btnPrintList = document.getElementById('btnPrintOnlyList');
-  
-  const grandEl = document.getElementById('grand');
-  const linePriceEls = document.querySelectorAll('#lines .line-price'); // 個別金額の全要素を取得
+    const btnCsv = document.getElementById('btnCsv');
+    const btnPdf = document.getElementById('btnPdf');
+    const btnPrintList = document.getElementById('btnPrintOnlyList');
 
-  function hidePrices(){
-    // 合計金額を強制非表示
-    if(grandEl) grandEl.style.cssText = "display:none !important;";
-    // 個別金額を強制非表示
-    linePriceEls.forEach(el => {
-      el.style.cssText = "display:none !important;";
-    });
-  }
+    if (btnCsv) btnCsv.addEventListener('click', ()=>{
+        const q = window.lastQuote;
+        if (!q?.display?.lines) return alert('見積結果がありません。');
+        const summary = q.display?.summary || { subtotal:q.totals?.subtotalRounded, tax:q.totals?.taxInt, totalRounded:q.totals?.grand };
+        exportLinesToCSV(q.display.lines, summary, '見積明細.csv');
+    });
+    if (btnPdf) btnPdf.addEventListener('click', ()=> printQuote());
 
-  function restorePrices(){
-    // スタイルをクリアして元のCSSに制御を戻す
-    if(grandEl) grandEl.style.cssText = "";
-    linePriceEls.forEach(el => {
-      el.style.cssText = "";
-    });
-  }
-
-  if (btnCsv) btnCsv.addEventListener('click', ()=>{
-    // ... (CSV処理は変更なし)
-  });
-  if (btnPdf) btnPdf.addEventListener('click', ()=> printQuote());
-
-  if (btnPrintList) btnPrintList.addEventListener('click', ()=>{
+    if (btnPrintList) btnPrintList.addEventListener('click', ()=>{
         
-        // ★★★ 【ここが重要】クリック時に最新の要素を再取得する ★★★
+        // ★★★ 【修正点：明細・サマリ要素の取得を追加】 ★★★
         const grandEl = document.getElementById('grand');
-        // 個別金額の全要素を再取得 (見積ボタンが押された後でないと存在しないため)
         const linePriceEls = document.querySelectorAll('#lines .line-price');
+        // 明細関連の要素を取得
+        const toggleDetailEl = document.getElementById('toggleDetail'); // 詳細を表示ボタン
+        const breakdownEl = document.getElementById('breakdown');       // 明細サマリコンテナ
 
         // 1. 非表示を強制
-        function hidePrices(){
-            // 合計金額を強制非表示
+        function hideAllExtra(){
+            // 金額
             if(grandEl) grandEl.style.cssText = "display:none !important;";
-            // 個別金額を強制非表示
             linePriceEls.forEach(el => {
                 el.style.cssText = "display:none !important;";
             });
+            // ★★★ 明細・サマリを強制非表示 ★★★
+            if(toggleDetailEl) toggleDetailEl.style.cssText = "display:none !important;";
+            if(breakdownEl) breakdownEl.style.cssText = "display:none !important;";
         }
 
         // 2. スタイルを元に戻す関数
-        function restorePrices(){
-            // スタイルをクリアして元のCSSに制御を戻す
+        function restoreAllExtra(){
+            // 金額
             if(grandEl) grandEl.style.cssText = "";
             linePriceEls.forEach(el => {
                 el.style.cssText = "";
             });
+            // ★★★ 明細・サマリを元に戻す ★★★
+            if(toggleDetailEl) toggleDetailEl.style.cssText = ""; // 画面表示ではデフォルトのCSSに任せる
+            if(breakdownEl) breakdownEl.style.cssText = "display:none"; // breakdownはデフォルトで非表示に戻す
         }
 
-        hidePrices();
+        hideAllExtra();
 
         // 3. bodyクラスを追加（印刷時のレイアウト調整用）
         document.body.classList.add('print-only-list');
@@ -772,7 +762,7 @@ qs('btnQuote').onclick = async ()=>{
         // 5. 印刷ダイアログが閉じられた後、スタイルとクラスを元に戻す
         setTimeout(() => {
             document.body.classList.remove('print-only-list');
-            restorePrices();
+            restoreAllExtra();
         }, 500);
     });
 })();
