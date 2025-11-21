@@ -55,11 +55,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-msg { margin-top: 10px; color:#374151; font-size:14px; text-align:center }
 
-/* ==== Export actions ==== */
-.export-actions{margin:12px 0; display:flex; gap:8px}
-.btn{padding:8px 12px; border:1px solid #ddd; background:#fff; cursor:pointer; color:#111827}
-.btn:hover{background:#f5f5f5}
-
 /* ==== Print optimization (統合版) ==== */
 @media print{
   /* 通常印刷時に非表示にする共通要素 */
@@ -67,41 +62,39 @@ button:disabled{opacity:.5;cursor:not-allowed}
   
   /* 印刷領域の調整 */
   #quoteRoot, #result { width:100% !important; margin:0 !important; }
-  table { page-break-inside:auto; }
-  tr, td, th { page-break-inside:avoid; page-break-after:auto; }
+  table { page-break-inside:auto !important; }
+  tr, td, th { page-break-inside:avoid !important; page-break-after:auto !important; }
 
   /* B. 項目一覧のみ印刷モード (body.print-only-list) */
 
-  /* フォーム、連絡先、結果カードのリスト・合計以外を非表示 */
+  /* フォーム、連絡先、結果カードのリスト以外を非表示 */
   body.print-only-list > *:not(.card),
   body.print-only-list .header,
-  body.print-only-list #branchContact,
-  
-  /* ⬇️⬇️⬇️ ここを修正・強化 ⬇️⬇️⬇️ */
-  /* #result内にあるlines, grand, toggleDetail, breakdown, notes のうち、lines以外を全て非表示にする */
-  body.print-only-list #result > *:not(#lines) 
+  body.print-only-list #branchContact
   {
     display: none !important;
   }
-  
+  
   /* 入力フォームカード全体を非表示 */
   body.print-only-list > .card:first-of-type {
     display: none !important;
   }
+  
+  /* 【最重要】#result内の#lines (商品名リスト) 以外をすべて非表示にする */
+  /* これにより、#grand, #toggleDetail, #breakdown, #notes が確実に消える */
+  body.print-only-list #result > *:not(#lines) {
+    display: none !important;
+  }
 
-  /* 1. シンプル表示の明細行にある詳細（.small）を非表示にする */
-    body.print-only-list #lines .small {
-      display: none !important;
-    }
-
-  /* 2. シンプル表示の金額（.line-price）と合計金額（.total）を非表示にする */
-  /* lines内の金額要素を明示的に非表示にすることで、linesの保護を無視して金額を消す */
-    body.print-only-list #lines .line-price
-    {
-        display: none !important;
-    }
-  
-  /* ⬆️⬆️⬆️ ここを修正・強化 ⬆️⬆️⬆️ */
+  /* 【最重要】商品リスト内の金額表示を非表示にする */
+  body.print-only-list #lines .line-price {
+    display: none !important;
+  }
+  
+  /* シンプル表示の明細行にある詳細（.small）も非表示 */
+  body.print-only-list #lines .small {
+    display: none !important;
+  }
 
   /* 結果カードの枠線と背景を消す（リストだけを表示するため） */
   body.print-only-list #result {
