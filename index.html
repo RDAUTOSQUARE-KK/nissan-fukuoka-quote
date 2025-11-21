@@ -61,9 +61,9 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .btn:hover{background:#f5f5f5}
 
 /* ==== Print optimization (統合版) ==== */
-/* ==== Print optimization (統合版) ==== */
 @media print{
   /* 通常印刷時に非表示にする共通要素 */
+  /* toggle（詳細表示ボタン）を非表示リストに追加 */
   .export-actions, .global-header, .footer, .spinner, .toggle, #btnQuote, #manualToggleBtn, .header, #notes { display:none !important; }
   
   /* 印刷領域の調整 */
@@ -73,10 +73,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
   /* B. 項目一覧のみ印刷モード (body.print-only-list) */
   /* 入力フォーム、連絡先、ボタン類、詳細内訳、メモを非表示にする */
+  /* #breakdownと#toggleDetailは、上記の共通要素で非表示にされることを想定し、ここは lines と grand 以外を非表示にするルールに集中 */
   body.print-only-list > *:not(.card),
   body.print-only-list .header,
   body.print-only-list #branchContact,
-  body.print-only-list #result > *:not(#lines):not(#grand) /* linesとgrand以外 */
+  body.print-only-list #result > *:not(#lines):not(#grand) /* linesとgrand以外を非表示 */
   {
     display: none !important;
   }
@@ -85,23 +86,24 @@ button:disabled{opacity:.5;cursor:not-allowed}
   body.print-only-list > .card:first-of-type {
     display: none !important;
   }
-  
-  /* 1. シンプル表示の明細行にある詳細（.small）を非表示にする（既存修正の確認） */
-    body.print-only-list #lines .small {
-      display: none !important;
-    }
+  
+  /* 1. シンプル表示の明細行にある詳細（.small）を非表示にする */
+    body.print-only-list #lines .small {
+      display: none !important;
+    }
 
-    /* 2. シンプル表示の金額（.line-price）と合計金額（.total）を非表示にする（既存ルールの強化） */
-    body.print-only-list #lines .line-price,
-    body.print-only-list #grand
-    {
-        display: none !important;
-    }
-    
-    /* 3. 詳細内訳（#breakdown）が予期せず表示された場合でも、詳細内のコード/グレード/詳細を全て非表示にする */
-    body.print-only-list #breakdown .small {
-        display: none !important;
-    }
+    /* 2. シンプル表示の金額（.line-price）と合計金額（.total）を非表示にする */
+    body.print-only-list #lines .line-price,
+    body.print-only-list #grand
+    {
+        display: none !important;
+    }
+    
+    /* 3. 詳細内訳（#breakdown）が予期せず表示された場合でも、詳細内のコード/グレード/詳細を全て非表示にする */
+    body.print-only-list #breakdown, /* 追記: #breakdown自体を明示的に非表示 */
+    body.print-only-list #breakdown .small {
+        display: none !important;
+    }
 
   /* 結果カードの枠線と背景を消す（リストだけを表示するため） */
   body.print-only-list #result {
@@ -112,7 +114,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
     background: transparent !important;
   }
 }
-
 </style>
 </head>
 <body>
