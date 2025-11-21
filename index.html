@@ -306,9 +306,12 @@ async function initVehicleSelect(){
     sel.innerHTML = '<option value="">車種を選択</option>';
     for(const it of list){ sel.insertAdjacentHTML('beforeend', `<option value="${it.code}">${it.label?`${it.label} (${it.code})`:it.code}</option>`); }
   }catch(e){
-    sel.innerHTML = '<option value="">読み込みに失敗しました（手入力に切替可）</option>';
-    qs('msg').textContent = '車種リストの取得に失敗：' + e.message;
-  }finally{ sel.disabled = false; hideLoading(); }
+    sel.innerHTML = '<option value="">読み込みに失敗しました（手入力に切替可）</option>';
+    qs('msg').textContent = '車種リストの取得に失敗：' + e.message;
+  }finally{ sel.disabled = false; hideLoading(); }
+
+  if(typeof bindExportButtons === 'function') bindExportButtons();
+
 }
 initVehicleSelect();
 
@@ -589,7 +592,7 @@ qs('grand').classList.add('grand-price'); // 修正: class="grand-price" を追�
     // CSVエクスポート用に最終見積もりデータを保存
     window.lastQuote = data;
 
-    /* --- 詳細内訳（可変列ヘッダ） --- */
+    /* --- 詳細内訳（可変列ヘッダ） --- */
     const bd = qs('breakdown');
     const btnT = qs('toggleDetail');
     // 削除: const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
@@ -668,9 +671,17 @@ qs('grand').classList.add('grand-price'); // 修正: class="grand-price" を追�
 })();
 
 /* ===== エクスポートボタン ===== */
-(function bindExportButtons(){
-// ... (既存の CSV, PDF ロジック) ...
-})();
+function bindExportButtons(){ // <-- functionキーワードのみに変更
+  const btnCsv = document.getElementById('btnCsv');
+  const btnPdf = document.getElementById('btnPdf');
+  if (btnCsv) btnCsv.addEventListener('click', ()=>{
+    const q = window.lastQuote;
+    if (!q?.display?.lines) return alert('見積結果がありません。');
+    const summary = q.display?.summary || { subtotal:q.totals?.subtotalRounded, tax:q.totals?.taxInt, totalRounded:q.totals?.grand };
+    exportLinesToCSV(q.display.lines, summary, '見積明細.csv');
+  });
+  if (btnPdf) btnPdf.addEventListener('click', ()=> printQuote());
+} // <-- 括弧を削除
 
 /* ⬇️⬇️⬇️ 修正点: 印刷モード切り替えロジックを追加 ⬇️⬇️⬇️ */
 (function bindPrintToggle(){
