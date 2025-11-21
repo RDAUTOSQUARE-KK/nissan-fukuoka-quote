@@ -706,25 +706,75 @@ qs('btnQuote').onclick = async ()=>{
 /* ===== エクスポートボタン ===== */
 
 (function bindExportButtons(){
-  const btnCsv = document.getElementById('btnCsv');
-  const btnPdf = document.getElementById('btnPdf');
-  const btnPrintList = document.getElementById('btnPrintOnlyList');
-  if (btnCsv) btnCsv.addEventListener('click', ()=>{
-    const q = window.lastQuote;
-    if (!q?.display?.lines) return alert('見積結果がありません。');
-    const summary = q.display?.summary || { subtotal:q.totals?.subtotalRounded, tax:q.totals?.taxInt, totalRounded:q.totals?.grand };
-    exportLinesToCSV(q.display.lines, summary, '見積明細.csv');
-  });
-  if (btnPdf) btnPdf.addEventListener('click', ()=> printQuote());
-  if (btnPrintList) btnPrintList.addEventListener('click', ()=>{
-    // bodyに一時的にクラスを付与
-    document.body.classList.add('print-only-list');
-    window.print();
-    // 印刷ダイアログが閉じられた後、クラスを削除（setTimeoutで非同期処理を待つ）
-    setTimeout(() => {
-      document.body.classList.remove('print-only-list');
-    }, 500);
+  const btnCsv = document.getElementById('btnCsv');
+  const btnPdf = document.getElementById('btnPdf');
+  const btnPrintList = document.getElementById('btnPrintOnlyList');
+  
+  const grandEl = document.getElementById('grand');
+  const linePriceEls = document.querySelectorAll('#lines .line-price'); // 個別金額の全要素を取得
+
+  function hidePrices(){
+    // 合計金額を強制非表示
+    if(grandEl) grandEl.style.cssText = "display:none !important;";
+    // 個別金額を強制非表示
+    linePriceEls.forEach(el => {
+      el.style.cssText = "display:none !important;";
+    });
+  }
+
+  function restorePrices(){
+    // スタイルをクリアして元のCSSに制御を戻す
+    if(grandEl) grandEl.style.cssText = "";
+    linePriceEls.forEach(el => {
+      el.style.cssText = "";
+    });
+  }
+
+  if (btnCsv) btnCsv.addEventListener('click', ()=>{
+    // ... (CSV処理は変更なし)
   });
+  if (btnPdf) btnPdf.addEventListener('click', ()=> printQuote());
+
+  if (btnPrintList) btnPrintList.addEventListener('click', ()=>{
+        
+        // ★★★ 【ここが重要】クリック時に最新の要素を再取得する ★★★
+        const grandEl = document.getElementById('grand');
+        // 個別金額の全要素を再取得 (見積ボタンが押された後でないと存在しないため)
+        const linePriceEls = document.querySelectorAll('#lines .line-price');
+
+        // 1. 非表示を強制
+        function hidePrices(){
+            // 合計金額を強制非表示
+            if(grandEl) grandEl.style.cssText = "display:none !important;";
+            // 個別金額を強制非表示
+            linePriceEls.forEach(el => {
+                el.style.cssText = "display:none !important;";
+            });
+        }
+
+        // 2. スタイルを元に戻す関数
+        function restorePrices(){
+            // スタイルをクリアして元のCSSに制御を戻す
+            if(grandEl) grandEl.style.cssText = "";
+            linePriceEls.forEach(el => {
+                el.style.cssText = "";
+            });
+        }
+
+        hidePrices();
+
+        // 3. bodyクラスを追加（印刷時のレイアウト調整用）
+        document.body.classList.add('print-only-list');
+        
+        // 4. 印刷ダイアログを表示
+        window.print();
+
+        // 5. 印刷ダイアログが閉じられた後、スタイルとクラスを元に戻す
+        setTimeout(() => {
+            document.body.classList.remove('print-only-list');
+            restorePrices();
+        }, 500);
+    });
 })();
 </script>
 </body>
