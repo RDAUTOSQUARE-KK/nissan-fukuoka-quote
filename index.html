@@ -68,7 +68,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
   /* ⬇️⬇️⬇️ 修正点: 金額非表示を body のクラスに依存させる ⬇️⬇️⬇️ */
   body.print-no-price #result .line-price,
   body.print-no-price #result .grand-price,
-  body.print-no-price #grand {
+  body.print-no-price #grand,
+  /* 詳細内訳テーブル（明細）の最後の<td> */
+  body.print-no-price #breakdown .tbl tbody tr > td:last-child,
+  /* 詳細内訳テーブル（サマリ）の金額が入っている<td> */
+  body.print-no-price #breakdown .tbl tbody tr > td {
     display: none !important;
   }
   /* ⬆️⬆️⬆️ 修正点 ⬆️⬆️⬆️ */
