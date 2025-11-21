@@ -60,27 +60,16 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .btn{padding:8px 12px; border:1px solid #ddd; background:#fff; cursor:pointer; color:#111827}
 .btn:hover{background:#f5f5f5}
 
-/* ==== Print optimization ==== */
+/* ==== Print optimization (統合版) ==== */
 @media print{
   /* 通常印刷時に非表示にする共通要素 */
-  .export-actions, .global-header, .footer, .spinner, .toggle, #btnQuote, #manualToggleBtn, .header,
-  #printNoPriceToggle, [for="printNoPriceToggle"], #notes { display:none !important; }
+  /* 削除: #printNoPriceToggle, [for="printNoPriceToggle"], を削除 */
+  .export-actions, .global-header, .footer, .spinner, .toggle, #btnQuote, #manualToggleBtn, .header, #notes { display:none !important; }
   
   /* 印刷領域の調整 */
   #quoteRoot, #result { width:100% !important; margin:0 !important; }
   table { page-break-inside:auto; }
   tr, td, th { page-break-inside:avoid; page-break-after:auto; }
-
-  /* A. 金額非表示モード (body.print-no-price) */
-  body.print-no-price #result .line-price, /* シンプル表示の金額 */
-  body.print-no-price #result .grand-price, /* 合計金額のクラス */
-  body.print-no-price #grand, /* 合計金額のID */
-  /* 詳細内訳テーブル（明細）の最後の<td> */
-  body.print-no-price #breakdown .tbl tbody tr > td:last-child,
-  /* 詳細内訳テーブル（サマリ）の金額が入っている<td> */
-  body.print-no-price #breakdown .tbl tbody tr > td {
-    display: none !important;
-  }
 
   /* B. 項目一覧のみ印刷モード (body.print-only-list) */
   /* 入力フォーム、連絡先、ボタン類、詳細内訳、メモを非表示にする */
@@ -199,11 +188,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
     </div>
     <div id="lines"></div>
     <div class="total" id="grand"></div>
-
-    <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
-     <input type="checkbox" id="printNoPriceToggle" style="width: auto; margin: 0; padding: 0;">
-     <label for="printNoPriceToggle" style="font-weight: 400; font-size: 14px; margin: 0;">印刷時：金額を非表示にする</label>
-   </div>
 
     <button id="toggleDetail" class="btn-ghost toggle" style="display:none">詳細を表示</button>
     <div id="breakdown" style="display:none"></div>
@@ -698,23 +682,6 @@ qs('btnQuote').onclick = async ()=>{
 })();
 
 /* ===== エクスポートボタン ===== */
-(function bindPrintToggle(){
-  const toggle = qs('printNoPriceToggle');
-  if(!toggle) return;
-  
-  toggle.addEventListener('change', (e)=>{
-    if(e.target.checked){
-      document.body.classList.add('print-no-price');
-    } else {
-      document.body.classList.remove('print-no-price');
-    }
-  });
-
-  // 初期実行: ページロード時にボディクラスをセット（チェックがついていれば）
-  if(toggle.checked){
-    document.body.classList.add('print-no-price');
-  }
-})();
 
 (function bindExportButtons(){
   const btnCsv = document.getElementById('btnCsv');
