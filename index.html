@@ -66,11 +66,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
   #quoteRoot, #result { width:100% !important; margin:0 !important; }
   
   /* ⬇️⬇️⬇️ 修正点: 金額非表示を body のクラスに依存させる ⬇️⬇️⬇️ */
-  body.print-no-price .line-price, 
-  body.print-no-price .grand-price,
-  body.print-no-price #grand { /* #grand も金額表示の一部として非表示にする */
-    display: none !important; 
-  }
+  body.print-no-price #result .line-price,
+  body.print-no-price #result .grand-price,
+  body.print-no-price #grand {
+    display: none !important;
+  }
   /* ⬆️⬆️⬆️ 修正点 ⬆️⬆️⬆️ */
   
   table { page-break-inside:auto; }
