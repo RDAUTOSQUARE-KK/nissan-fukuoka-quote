@@ -737,6 +737,7 @@ qs('btnQuote').onclick = async ()=>{
         // 明細関連の要素を取得
         const toggleDetailEl = document.getElementById('toggleDetail'); // 詳細を表示ボタン
         const breakdownEl = document.getElementById('breakdown');       // 明細サマリコンテナ
+        const exportActionsEl = document.querySelector('.export-actions');
 
         // 1. 非表示を強制
         function hideAllExtra(){
@@ -748,6 +749,7 @@ qs('btnQuote').onclick = async ()=>{
             // ★★★ 明細・サマリを強制非表示 ★★★
             if(toggleDetailEl) toggleDetailEl.style.cssText = "display:none !important;";
             if(breakdownEl) breakdownEl.style.cssText = "display:none !important;";
+            if(exportActionsEl) exportActionsEl.style.cssText = "display:none !important;";
         }
 
         // 2. スタイルを元に戻す関数
@@ -760,6 +762,7 @@ qs('btnQuote').onclick = async ()=>{
             // ★★★ 明細・サマリを元に戻す ★★★
             if(toggleDetailEl) toggleDetailEl.style.cssText = ""; // 画面表示ではデフォルトのCSSに任せる
             if(breakdownEl) breakdownEl.style.cssText = "display:none"; // breakdownはデフォルトで非表示に戻す
+            if(exportActionsEl) exportActionsEl.style.cssText = "";
         }
 
         hideAllExtra();
