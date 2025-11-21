@@ -62,25 +62,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 /* ==== Print optimization ==== */
 @media print{
-  .export-actions, .global-header, .footer, .spinner, .toggle, #btnQuote, #manualToggleBtn, .header, #printNoPriceToggle, [for="printNoPriceToggle"] { display:none !important; } /* 印刷時にトグル自体も非表示 */
-  #quoteRoot, #result { width:100% !important; margin:0 !important; }
-  
-  /* ⬇️⬇️⬇️ 修正点: 金額非表示を body のクラスに依存させる ⬇️⬇️⬇️ */
-  body.print-no-price #result .line-price,
-  body.print-no-price #result .grand-price,
-  body.print-no-price #grand,
-  /* 詳細内訳テーブル（明細）の最後の<td> */
-  body.print-no-price #breakdown .tbl tbody tr > td:last-child,
-  /* 詳細内訳テーブル（サマリ）の金額が入っている<td> */
-  body.print-no-price #breakdown .tbl tbody tr > td {
-    display: none !important;
-  }
-  /* ⬆️⬆️⬆️ 修正点 ⬆️⬆️⬆️ */
-  
-  table { page-break-inside:auto; }
-  tr, td, th { page-break-inside:avoid; page-break-after:auto; }
+  .export-actions, .global-header, .footer, .spinner, .toggle, #btnQuote, #manualToggleBtn, .header { display:none !important; }
+  #quoteRoot, #result { width:100% !important; margin:0 !important; }
+  table { page-break-inside:auto; }
+  tr, td, th { page-break-inside:avoid; page-break-after:auto; }
 }
-
 </style>
 </head>
 <body>
@@ -172,14 +158,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
     </div>
     <div id="lines"></div>
     <div class="total" id="grand"></div>
-
-    <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
-     <input type="checkbox" id="printNoPriceToggle" style="width: auto; margin: 0; padding: 0;">
-     <label for="printNoPriceToggle" style="font-weight: 400; font-size: 14px; margin: 0;">印刷時：金額を非表示にする</label>
-   </div>
-<button id="toggleDetail" class="btn-ghost toggle" style="display:none">詳細を表示</button>
-
-
+    <button id="toggleDetail" class="btn-ghost toggle" style="display:none">詳細を表示</button>
     <div id="breakdown" style="display:none"></div>
     <div id="notes" class="note"></div>
   </div>
@@ -310,12 +289,9 @@ async function initVehicleSelect(){
     sel.innerHTML = '<option value="">車種を選択</option>';
     for(const it of list){ sel.insertAdjacentHTML('beforeend', `<option value="${it.code}">${it.label?`${it.label} (${it.code})`:it.code}</option>`); }
   }catch(e){
-    sel.innerHTML = '<option value="">読み込みに失敗しました（手入力に切替可）</option>';
-    qs('msg').textContent = '車種リストの取得に失敗：' + e.message;
-  }finally{ sel.disabled = false; hideLoading(); }
-
-  if(typeof bindExportButtons === 'function') bindExportButtons();
-
+    sel.innerHTML = '<option value="">読み込みに失敗しました（手入力に切替可）</option>';
+    qs('msg').textContent = '車種リストの取得に失敗：' + e.message;
+  }finally{ sel.disabled = false; hideLoading(); }
 }
 initVehicleSelect();
 
@@ -578,17 +554,16 @@ qs('btnQuote').onclick = async ()=>{
 
     // シンプル行
     const linesEl = qs('lines'); linesEl.innerHTML = '';
-(data.display?.lines||[]).forEach(l=>{
-  const name = l.name || '';
-  const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
-  linesEl.insertAdjacentHTML('beforeend',
-    // 修正: class="line-price" を追加
-    `<div class="line"><div>${name}${detail}</div><div class="line-price">¥${fmtN(l.price||l.amount||0)}</div></div>` 
-  );
-});
+    (data.display?.lines||[]).forEach(l=>{
+      const name = l.name || '';
+      const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
+      linesEl.insertAdjacentHTML('beforeend',
+        `<div class="line"><div>${name}${detail}</div><div>¥${fmtN(l.price||l.amount||0)}</div></div>` // ★ fmtN を使用
+      );
+    });
 
-qs('grand').textContent = '合計(税込) ¥' + fmtN(data.totals?.grand||0); 
-qs('grand').classList.add('grand-price'); // 修正: class="grand-price" を追加
+    qs('grand').textContent = '合計(税込) ¥' + fmtN(data.totals?.grand||0); // ★ fmtN を使用
+    qs('notes').textContent = (data.display?.notes||[]).join(' / ') || '';
     qs('result').style.display = 'block';
     await sleep(50);
     document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
@@ -596,7 +571,7 @@ qs('grand').classList.add('grand-price'); // 修正: class="grand-price" を追�
     // CSVエクスポート用に最終見積もりデータを保存
     window.lastQuote = data;
 
-    /* --- 詳細内訳（可変列ヘッダ） --- */
+    /* --- 詳細内訳（可変列ヘッダ） --- */
     const bd = qs('breakdown');
     const btnT = qs('toggleDetail');
     // 削除: const fmtN = n => (n==null || isNaN(n)) ? '-' : Number(n).toLocaleString();
@@ -675,40 +650,17 @@ qs('grand').classList.add('grand-price'); // 修正: class="grand-price" を追�
 })();
 
 /* ===== エクスポートボタン ===== */
-function bindExportButtons(){ // <-- functionキーワードのみに変更
-  const btnCsv = document.getElementById('btnCsv');
-  const btnPdf = document.getElementById('btnPdf');
-  if (btnCsv) btnCsv.addEventListener('click', ()=>{
-    const q = window.lastQuote;
-    if (!q?.display?.lines) return alert('見積結果がありません。');
-    const summary = q.display?.summary || { subtotal:q.totals?.subtotalRounded, tax:q.totals?.taxInt, totalRounded:q.totals?.grand };
-    exportLinesToCSV(q.display.lines, summary, '見積明細.csv');
-  });
-  if (btnPdf) btnPdf.addEventListener('click', ()=> printQuote());
-} // <-- 括弧を削除
-
-/* ⬇️⬇️⬇️ 修正点: 印刷モード切り替えロジックを追加 ⬇️⬇️⬇️ */
-(function bindPrintToggle(){
-  const toggle = qs('printNoPriceToggle');
-  if(!toggle) return;
-  
-  // 初期状態で「金額を非表示にする」にチェックを入れておく（もし必要であれば）
-  // toggle.checked = true;
-
-  toggle.addEventListener('change', (e)=>{
-    if(e.target.checked){
-      document.body.classList.add('print-no-price');
-    } else {
-      document.body.classList.remove('print-no-price');
-    }
+(function bindExportButtons(){
+  const btnCsv = document.getElementById('btnCsv');
+  const btnPdf = document.getElementById('btnPdf');
+  if (btnCsv) btnCsv.addEventListener('click', ()=>{
+    const q = window.lastQuote;
+    if (!q?.display?.lines) return alert('見積結果がありません。');
+    const summary = q.display?.summary || { subtotal:q.totals?.subtotalRounded, tax:q.totals?.taxInt, totalRounded:q.totals?.grand };
+    exportLinesToCSV(q.display.lines, summary, '見積明細.csv');
   });
-
-  // 初期実行: ページロード時にボディクラスをセット（チェックがついていれば）
-  if(toggle.checked){
-    document.body.classList.add('print-no-price');
-  }
+  if (btnPdf) btnPdf.addEventListener('click', ()=> printQuote());
 })();
-/* ⬆️⬆️⬆️ 修正点: 印刷モード切り替えロジックを追加 ⬆️⬆️⬆️ */
 </script>
 </body>
 </html>
