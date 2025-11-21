@@ -207,11 +207,11 @@ body.print-only-list #breakdown {
     </div>
     <div id="lines"></div>
 
-        <div class="total" id="grand" style="display:none !important;"></div>
+        <div class="total" id="grand"></div>
 
-        <button id="toggleDetail" class="btn-ghost toggle" style="display:none !important;">詳細を表示</button>
+    <button id="toggleDetail" class="btn-ghost toggle">詳細を表示</button>
 
-        <div id="breakdown" style="display:none !important;"></div>
+    <div id="breakdown" style="display:none"></div>
 
     <div id="notes" class="note"></div>
 </div>
@@ -611,9 +611,8 @@ qs('btnQuote').onclick = async ()=>{
       const name = l.name || '';
       const detail = l.detail ? `<div class="small" style="color:#374151">${l.detail}</div>` : '';
       linesEl.insertAdjacentHTML('beforeend',
-        // ここで style="display:none !important;" を追加する
-        `<div class="line"><div>${name}${detail}</div><div class="line-price" style="display:none !important;">¥${fmtN(l.price||l.amount||0)}</div></div>` 
-      );
+        `<div class="line"><div>${name}${detail}</div><div class="line-price">¥${fmtN(l.price||l.amount||0)}</div></div>` 
+    );
     });
 
     qs('grand').textContent = '合計(税込) ¥' + fmtN(data.totals?.grand||0); // ★ fmtN を使用
